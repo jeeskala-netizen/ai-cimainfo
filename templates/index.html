@@ -21,97 +21,91 @@
             <li onclick="showPage('library')"><i class="fa-solid fa-heart"></i> {{ t['menu'][6] }}</li>
         </ul>
         <div class="lang-switch">
-            <a href="/change_lang/ar">AR</a> | <a href="/change_lang/en">EN</a> | <a href="/change_lang/de">DE</a>
+            <a href="/change_lang/ar">AR</a> | <a href="/change_lang/en">EN</a>
         </div>
     </div>
 
     <div class="main-container">
         
         <div id="chat_home" class="page-section active-section">
-            
-            <div class="controls-wrapper">
-                <span style="color:#aaa; font-size:0.9rem;"><i class="fa-solid fa-masks-theater"></i></span>
-                
-                <div class="custom-dropdown" id="persona-dropdown">
-                    <div class="dropdown-selected" onclick="toggleDropdown()">
-                        <span id="selected-text">{{ t['personas'][0] }}</span>
-                        <i class="fa-solid fa-chevron-down"></i>
+            <div class="chat-home-layout">
+                <div class="controls-wrapper">
+                    <span style="color:#aaa;"><i class="fa-solid fa-masks-theater"></i></span>
+                    <div class="custom-dropdown" id="persona-dropdown">
+                        <div class="dropdown-selected" onclick="toggleDropdown()">
+                            <span id="selected-text">{{ t['personas'][0] }}</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <div class="dropdown-options">
+                            {% for i in range(4) %}
+                                <div class="option-item" onclick="selectPersona({{ i }}, '{{ t['personas'][i] }}')">
+                                    {{ t['personas'][i] }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" id="persona-value" value="0">
                     </div>
-                    <div class="dropdown-options">
-                        {% for i in range(4) %}
-                            <div class="option-item" onclick="selectPersona({{ i }}, '{{ t['personas'][i] }}')">
-                                {{ t['personas'][i] }}
-                            </div>
-                        {% endfor %}
-                    </div>
-                    <input type="hidden" id="persona-value" value="0">
+                    <button class="refresh-btn" onclick="resetChat()"><i class="fa-solid fa-rotate-right"></i></button>
                 </div>
 
-                <div style="width:1px; height:20px; background:rgba(255,255,255,0.2);"></div>
-
-                <button class="refresh-btn" onclick="resetChat()" title="{{ t['new_chat'] }}">
-                    <i class="fa-solid fa-rotate-right"></i>
-                </button>
-            </div>
-
-            <div id="chatbox" class="chat-box">
-                <div class="message bot-msg">
-                    <div class="avatar">🤖</div>
-                    <div class="bubble" id="welcome-bubble">{{ t['welcome_msgs'][0] }}</div>
+                <div id="chatbox" class="chat-box">
+                    <div class="message bot-msg">
+                        <div class="avatar">🤖</div>
+                        <div class="bubble" id="welcome-bubble">{{ t['welcome_msgs'][0] }}</div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="input-area">
-                <input type="text" id="user-input" placeholder="{{ t['input_placeholder'] }}">
-                <button class="send-btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+                <div class="input-area">
+                    <input type="text" id="user-input" placeholder="{{ t['input_placeholder'] }}">
+                    <button class="send-btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
             </div>
         </div>
 
         <div id="browse_movies" class="page-section">
             <div class="section-header"><h1>{{ t['browse_movies'] }}</h1></div>
-            <div class="glass-container" style="flex-direction: row; align-items: center;">
-                <input type="text" id="m-search" placeholder="{{ t['search_placeholder'] }}">
-                <button class="send-btn" onclick="search('m-search', 'movie', 'm-res')">🔍</button>
+            <div class="glass-container" style="flex-direction: row; padding: 10px;">
+                <input type="text" id="m-search" placeholder="{{ t['search_placeholder'] }}" style="background:transparent; border:none;">
+                <button class="send-btn" onclick="search('m-search', 'movie', 'm-res')" style="width:40px; height:40px;">🔍</button>
             </div>
-            <div id="m-res" class="universal-grid"></div>
+            <div id="m-res" class="grid-container" style="margin-top:20px;"></div>
         </div>
 
         <div id="browse_tv" class="page-section">
             <div class="section-header"><h1>{{ t['browse_tv'] }}</h1></div>
-            <div class="glass-container" style="flex-direction: row; align-items: center;">
-                <input type="text" id="t-search" placeholder="{{ t['search_placeholder'] }}">
-                <button class="send-btn" onclick="search('t-search', 'tv', 't-res')">🔍</button>
+            <div class="glass-container" style="flex-direction: row; padding: 10px;">
+                <input type="text" id="t-search" placeholder="{{ t['search_placeholder'] }}" style="background:transparent; border:none;">
+                <button class="send-btn" onclick="search('t-search', 'tv', 't-res')" style="width:40px; height:40px;">🔍</button>
             </div>
-            <div id="t-res" class="universal-grid"></div>
+            <div id="t-res" class="grid-container" style="margin-top:20px;"></div>
         </div>
 
         <div id="visual_detective" class="page-section">
             <div class="section-header">
-                <h1>{{ t['header_visual'] }}</h1>
-                <p>{{ t['visual_desc'] }}</p>
+                <h1>{{ t['headers'][0] }}</h1>
+                <p>{{ t['descs'][0] }}</p>
             </div>
             <div class="glass-container" style="text-align: center;">
-                <input type="file" id="img-up" style="display:none" accept="image/*" onchange="previewImage()">
-                <div class="file-upload-wrapper" onclick="document.getElementById('img-up').click()">
-                    <i class="fa-solid fa-cloud-arrow-up" style="font-size: 3rem; color: #6a11cb;"></i>
+                <input type="file" id="img-up" hidden onchange="previewImage()">
+                <div onclick="document.getElementById('img-up').click()" style="cursor:pointer; border:2px dashed #6a11cb; padding:30px; border-radius:15px;">
+                    <i class="fa-solid fa-cloud-upload-alt" style="font-size:3rem; color:#6a11cb;"></i>
                     <p>{{ t['upload_text'] }}</p>
                 </div>
-                <img id="img-preview" style="max-width: 100%; margin-top: 20px; border-radius: 15px; display: none;">
-                <br>
-                <button id="analyze-btn" class="btn-glow" style="display:none;" onclick="analyzeImage()">{{ t['analyze_btn'] }}</button>
+                <img id="img-preview" style="max-width:100%; margin-top:15px; border-radius:10px; display:none;">
+                <button id="analyze-btn" class="btn-glow" style="display:none; margin-top:15px;" onclick="analyzeImage()">{{ t['analyze_btn'] }}</button>
             </div>
-            <div id="v-res" class="chat-box"></div>
+            <div id="v-res" class="chat-box" style="margin-top:20px;"></div>
         </div>
 
         <div id="dna_analysis" class="page-section">
             <div class="section-header">
-                <h1>{{ t['header_dna'] }}</h1>
+                <h1>{{ t['headers'][1] }}</h1>
                 <p>{{ t['descs'][1] }}</p>
             </div>
             <div class="glass-container">
-                <input type="text" id="d1" placeholder="{{ t['dna_inputs'][0] }}">
-                <input type="text" id="d2" placeholder="{{ t['dna_inputs'][1] }}">
-                <input type="text" id="d3" placeholder="{{ t['dna_inputs'][2] }}">
+                <input type="text" id="d1" placeholder="{{ t['dna_inputs'][0] }}" style="width:100%; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white;">
+                <input type="text" id="d2" placeholder="{{ t['dna_inputs'][1] }}" style="width:100%; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white;">
+                <input type="text" id="d3" placeholder="{{ t['dna_inputs'][2] }}" style="width:100%; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white;">
                 <button class="btn-glow" onclick="analyzeDNA()">{{ t['dna_btn'] }}</button>
             </div>
             <div id="d-res" class="chat-box" style="margin-top:20px;"></div>
@@ -119,13 +113,13 @@
 
         <div id="matchmaker" class="page-section">
             <div class="section-header">
-                <h1>{{ t['header_match'] }}</h1>
-                <p>{{ t['match_desc'] }}</p>
+                <h1>{{ t['headers'][2] }}</h1>
+                <p>{{ t['descs'][2] }}</p>
             </div>
             <div class="glass-container">
                 <div style="display:flex; gap:10px; width:100%;">
-                    <input type="text" id="u1" placeholder="{{ t['match_inputs'][0] }}">
-                    <input type="text" id="u2" placeholder="{{ t['match_inputs'][1] }}">
+                    <input type="text" id="u1" placeholder="{{ t['match_inputs'][0] }}" style="width:100%; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white;">
+                    <input type="text" id="u2" placeholder="{{ t['match_inputs'][1] }}" style="width:100%; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white;">
                 </div>
                 <button class="btn-glow" onclick="findMatch()">{{ t['match_btn'] }}</button>
             </div>
@@ -133,7 +127,7 @@
         </div>
 
         <div id="library" class="page-section">
-            <div class="section-header"><h1>{{ t['header_fav'] }}</h1></div>
+            <div class="section-header"><h1>{{ t['headers'][4] }}</h1></div>
             <div class="glass-container" style="text-align:center;">
                 <p>🚧 (قريباً)</p>
             </div>
@@ -152,78 +146,63 @@
         const t_welcome = {{ t['welcome_msgs'] | tojson }};
         const t_personas = {{ t['personas'] | tojson }};
 
-        // 1. القائمة المنسدلة التفاعلية
-        function toggleDropdown() {
-            document.getElementById("persona-dropdown").classList.toggle("active");
-        }
-
-        function selectPersona(index, name) {
-            document.getElementById("selected-text").innerText = name;
-            document.getElementById("persona-value").value = index;
-            document.getElementById("persona-dropdown").classList.remove("active");
-            
-            // تحديث الترحيب فوراً
-            const bubble = document.getElementById('welcome-bubble');
-            bubble.innerText = t_welcome[index];
-            // إعادة تعيين الأنيميشن البسيط
-            bubble.style.animation = 'none';
-            bubble.offsetHeight; /* trigger reflow */
-            bubble.style.animation = 'fadeIn 0.5s';
-        }
-
-        // إغلاق القائمة عند النقر خارجها
-        window.onclick = function(event) {
-            if (!event.target.matches('.dropdown-selected') && !event.target.matches('.dropdown-selected *')) {
-                const d = document.getElementById("persona-dropdown");
-                if (d.classList.contains('active')) d.classList.remove('active');
-            }
-        }
-
-        // 2. التنقل
         function showPage(id) {
+            // إخفاء كل الأقسام
             document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active-section'));
+            // إظهار القسم المطلوب فقط
             document.getElementById(id).classList.add('active-section');
+            // تحديث القائمة
             document.querySelectorAll('.nav-menu li').forEach(li => li.classList.remove('active'));
             event.currentTarget.classList.add('active');
         }
 
-        // 3. تحميل المحتوى
-        async function loadContent(type, outputId) {
-            const div = document.getElementById(outputId);
-            if(div.innerHTML.trim() !== "") return;
-            div.innerHTML = '<div style="text-align:center; padding:20px;">Loading...</div>';
-            const fd = new FormData(); fd.append('type', type);
-            try {
-                const res = await fetch('/browse_content', {method:'POST', body:fd});
-                const data = await res.json();
-                renderGrid(data.movies, div);
-            } catch(e) { div.innerHTML = '<p style="text-align:center;">Error.</p>'; }
+        function toggleDropdown() { document.getElementById("persona-dropdown").classList.toggle("active"); }
+        
+        function selectPersona(index, name) {
+            document.getElementById("selected-text").innerText = name;
+            document.getElementById("persona-value").value = index;
+            document.getElementById("persona-dropdown").classList.remove("active");
+            document.getElementById('welcome-bubble').innerText = t_welcome[index];
         }
 
-        function renderGrid(movies, container) {
-            container.innerHTML = '';
-            if(movies.length === 0) { container.innerHTML = '<p style="text-align:center">No results.</p>'; return; }
-            
-            let html = `<div class="universal-grid">`;
-            movies.forEach(m => {
-                const mStr = JSON.stringify(m).replace(/"/g, "&quot;");
-                html += `
-                <div class="modern-card" onclick="openModal(${mStr})">
-                    <img src="${m.poster}">
-                    <div class="overlay"><h4>${m.title}</h4></div>
-                </div>`;
-            });
-            html += `</div>`;
-            container.innerHTML = html;
+        window.onclick = function(e) {
+            if (!e.target.matches('.dropdown-selected') && !e.target.matches('.dropdown-selected *')) {
+                document.getElementById("persona-dropdown").classList.remove('active');
+            }
         }
 
-        // 4. الشات
         function resetChat() {
             const idx = document.getElementById("persona-value").value;
             document.getElementById('chatbox').innerHTML = `
                 <div class="message bot-msg"><div class="avatar">🤖</div><div class="bubble">${t_welcome[idx]}</div></div>`;
         }
 
+        async function loadContent(type, outputId) {
+            const div = document.getElementById(outputId);
+            if(div.innerHTML.trim() !== "") return;
+            div.innerHTML = '<div style="text-align:center; color:#ccc;">جاري التحميل...</div>';
+            try {
+                const fd = new FormData(); fd.append('type', type);
+                const res = await fetch('/browse_content', {method:'POST', body:fd});
+                const data = await res.json();
+                renderGrid(data.movies, div);
+            } catch(e) { div.innerHTML = 'Error'; }
+        }
+
+        function renderGrid(movies, container) {
+            container.innerHTML = '';
+            let html = `<div class="grid-container">`;
+            movies.forEach(m => {
+                const mStr = JSON.stringify(m).replace(/"/g, "&quot;");
+                html += `<div class="movie-card" onclick="openModal(${mStr})"><img src="${m.poster}"><h4>${m.title}</h4></div>`;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        // ... (باقي الدوال: sendMessage, search, analyzeImage, analyzeDNA, findMatch, openModal - انسخها من الرد السابق، هي تعمل بشكل صحيح) ...
+        // للإيجاز، تأكد من نسخ دالة openModal و sendMessage كما كانت.
+        
         async function sendMessage() {
             const msg = document.getElementById('user-input').value;
             if(!msg) return;
@@ -237,7 +216,7 @@
 
             const fd = new FormData();
             fd.append('msg', msg);
-            fd.append('persona', t_personas[document.getElementById('persona-value').value]); // الاسم النصي للشخصية
+            fd.append('persona', t_personas[document.getElementById('persona-value').value]);
 
             const res = await fetch('/chat', {method:'POST', body:fd});
             const data = await res.json();
@@ -248,7 +227,7 @@
                 html += `<div style="display:flex; gap:10px; overflow-x:auto; padding:10px 0 10px 50px;">`;
                 data.movies.forEach(m => {
                     const mStr = JSON.stringify(m).replace(/"/g, "&quot;");
-                    html += `<div class="modern-card" style="min-width:120px; aspect-ratio:2/3;" onclick="openModal(${mStr})"><img src="${m.poster}"></div>`;
+                    html += `<div class="movie-card" style="min-width:120px; aspect-ratio:2/3;" onclick="openModal(${mStr})"><img src="${m.poster}"></div>`;
                 });
                 html += `</div>`;
             }
@@ -256,7 +235,6 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        // 5. الميزات الأخرى
         async function search(inId, type, outId) {
             const q = document.getElementById(inId).value;
             const fd = new FormData(); fd.append('query', q); fd.append('type', type);
@@ -265,39 +243,34 @@
             renderGrid(data.movies, document.getElementById(outId));
         }
 
-        // عرض النتائج الموحد
-        function renderAnalysisResult(data, containerId) {
+        function renderResults(data, containerId) {
             const div = document.getElementById(containerId);
-            let html = `<div class="glass-container" style="border-left:4px solid #6a11cb; text-align:right;">
-                <p>${data.response.replace(/\n/g, '<br>')}</p>
-            </div>`;
-            renderGrid(data.movies, div); // يضيف الشبكة بعد النص
+            let html = `<div class="glass-container" style="text-align:right;"><p>${data.response.replace(/\n/g, '<br>')}</p></div>`;
+            renderGrid(data.movies, div);
             div.innerHTML = html + div.innerHTML;
         }
 
         async function analyzeImage() {
             const fd = new FormData(); fd.append('image', document.getElementById('img-up').files[0]);
             const res = await fetch('/analyze_image', {method:'POST', body:fd});
-            renderAnalysisResult(await res.json(), 'v-res');
+            renderResults(await res.json(), 'v-res');
         }
-        
         async function analyzeDNA() {
             const fd = new FormData();
             fd.append('m1', document.getElementById('d1').value);
             fd.append('m2', document.getElementById('d2').value);
             fd.append('m3', document.getElementById('d3').value);
             const res = await fetch('/analyze_dna', {method:'POST', body:fd});
-            renderAnalysisResult(await res.json(), 'd-res');
+            renderResults(await res.json(), 'd-res');
         }
-
         async function findMatch() {
             const fd = new FormData();
             fd.append('u1', document.getElementById('u1').value);
             fd.append('u2', document.getElementById('u2').value);
             const res = await fetch('/matchmaker', {method:'POST', body:fd});
-            renderAnalysisResult(await res.json(), 'ma-res');
+            renderResults(await res.json(), 'ma-res');
         }
-
+        
         function previewImage() {
             const file = document.getElementById('img-up').files[0];
             if(file) {
@@ -307,37 +280,32 @@
             }
         }
 
-        // 6. Modal
         async function openModal(movie) {
             const modal = document.getElementById('modal');
-            const body = document.getElementById('modal-body');
             modal.style.display = "flex";
-            
+            const body = document.getElementById('modal-body');
             body.innerHTML = `
-                <div style="height:350px; background:url('${movie.poster}') center/cover; position:relative;">
-                    <div style="position:absolute; bottom:0; width:100%; background:linear-gradient(to top, #161625, transparent); padding:30px;">
-                        <h1 style="margin:0; text-shadow:0 0 10px black;">${movie.title}</h1>
+                <div style="height:300px; background:url('${movie.poster}') center/cover; position:relative;">
+                    <div style="position:absolute; bottom:0; background:linear-gradient(to top, #1a1a2e, transparent); width:100%; padding:20px; box-sizing:border-box;">
+                        <h1 style="margin:0; text-shadow:0 0 10px black">${movie.title}</h1>
                     </div>
                 </div>
-                <div style="padding:30px;">
-                    <p style="line-height:1.8; font-size:1.1rem;">${movie.overview}</p>
-                    <div id="provs" style="margin-top:20px;">Wait...</div>
+                <div style="padding:20px;">
+                    <p style="line-height:1.6">${movie.overview}</p>
+                    <div id="provs" style="margin-top:20px">Loading...</div>
                 </div>`;
-            
             const fd = new FormData(); fd.append('id', movie.id); fd.append('type', movie.type);
             const res = await fetch('/get_details', {method:'POST', body:fd});
             const data = await res.json();
-            
-            let pHTML = `<div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap;">`;
-            if(data.providers.length > 0) data.providers.forEach(p => pHTML += `<img src="${p.logo}" width="50" style="border-radius:10px;" title="${p.name}">`);
-            else pHTML += `<span style="color:#888">Not available digitally</span>`;
-            
-            if(data.trailer) pHTML += `<a href="https://www.youtube.com/watch?v=${data.trailer}" target="_blank" class="btn-glow" style="text-decoration:none; padding:10px 20px; margin-right:auto; width:auto;">▶ Trailer</a>`;
+            let pHTML = `<div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">`;
+            if(data.providers.length > 0) data.providers.forEach(p => pHTML += `<img src="${p.logo}" width="45" style="border-radius:10px;">`);
+            else pHTML += `<span style="color:#777">Not on streaming.</span>`;
+            if(data.trailer) pHTML += `<a href="https://youtube.com/watch?v=${data.trailer}" target="_blank" class="btn-glow" style="margin-right:auto; width:auto; padding:8px 20px; text-decoration:none;">🎥 Trailer</a>`;
             pHTML += `</div>`;
             document.getElementById('provs').innerHTML = pHTML;
         }
 
-        document.getElementById("user-input").addEventListener("keypress", function(e){if(e.key==="Enter") sendMessage();});
+        document.getElementById("user-input").addEventListener("keypress", function(e){ if(e.key==="Enter") sendMessage(); });
     </script>
 </body>
 </html>
