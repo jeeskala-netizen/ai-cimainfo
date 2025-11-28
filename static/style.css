@@ -1,30 +1,47 @@
-/* static/style.css - النسخة البلاتينية النهائية */
+/* static/style.css - النسخة النهائية والكاملة (The Final Polish) */
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700;900&display=swap');
 
 :root {
     --primary-grad: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-    --glass-bg: rgba(20, 20, 40, 0.6);
+    --glass-bg: rgba(20, 20, 40, 0.7);
     --glass-border: 1px solid rgba(138, 43, 226, 0.3);
     --dark-bg: #0f0c29;
+    --item-bg: #1a1a2e; /* لون خلفية القوائم */
     --neon-glow: 0 0 10px rgba(106, 17, 203, 0.5);
 }
 
+/* 1. إعدادات الصفحة والخلفية الثابتة */
 html, body {
     height: 100%;
     margin: 0;
     padding: 0;
     font-family: 'Tajawal', sans-serif;
-    /* خلفية ثابتة لا تتحرك مع التمرير */
+    background-color: var(--dark-bg);
     background-image: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-    background-attachment: fixed;
+    background-attachment: fixed; /* تثبيت الخلفية للجوال */
+    background-size: cover;
     color: #ffffff;
-    overflow: hidden; /* التطبيق يعمل كشاشة واحدة */
+    overflow: hidden; /* التطبيق يعمل كشاشة واحدة بدون تمرير خارجي */
+    display: flex;
+    flex-direction: column;
 }
 
-/* --- 1. القائمة العلوية (Navigation) --- */
+/* ============================================================
+   🛑 منطقة الإخفاء (إخفاء أشرطة Streamlit المزعجة)
+   ============================================================ */
+[data-testid="stSidebar"], [data-testid="collapsedControl"], 
+.stDeployButton, [data-testid="stToolbar"], [data-testid="stHeader"], 
+footer, header, #MainMenu, .viewerBadge_container__1QSob, 
+div[class^="viewerBadge"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* --- 2. القائمة العلوية (Navigation) --- */
 .nav-wrapper {
-    background: rgba(20, 20, 40, 0.95);
-    padding: 10px 20px;
+    background: rgba(20, 20, 40, 0.98);
+    padding: 10px 15px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -34,22 +51,27 @@ html, body {
 }
 
 .logo {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 900;
     background: -webkit-linear-gradient(#fff, #a18cd1);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    white-space: nowrap;
 }
 
 .nav-menu {
     list-style: none; display: flex; gap: 8px; margin: 0; padding: 5px;
-    background: rgba(255,255,255,0.05); border-radius: 50px;
+    overflow-x: auto; /* تمرير أفقي للجوال */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
 }
+.nav-menu::-webkit-scrollbar { display: none; }
 
 .nav-menu li {
     padding: 8px 15px; border-radius: 20px; cursor: pointer;
     transition: 0.3s; color: #bbb; font-size: 0.9rem;
     display: flex; align-items: center; gap: 5px;
+    white-space: nowrap; background: rgba(255,255,255,0.05);
 }
 
 .nav-menu li:hover, .nav-menu li.active {
@@ -57,102 +79,121 @@ html, body {
     box-shadow: var(--neon-glow); font-weight: bold;
 }
 
-.lang-switch a { color: #aaa; text-decoration: none; margin: 0 5px; font-weight: bold; }
+.lang-switch { white-space: nowrap; font-size: 0.8rem; }
+.lang-switch a { color: #aaa; text-decoration: none; margin: 0 4px; font-weight: bold; }
 .lang-switch a:hover { color: white; }
 
-/* --- 2. الحاوية والأقسام --- */
+/* --- 3. الحاوية الرئيسية --- */
 .main-container {
     flex: 1;
     position: relative;
     width: 100%;
     height: 100%;
     overflow: hidden;
+    display: flex;
+    justify-content: center;
 }
 
 .page-section {
     display: none;
     width: 100%;
+    max-width: 1000px;
     height: 100%;
-    overflow-y: auto; /* التمرير داخل الصفحة فقط */
+    overflow-y: auto; /* التمرير هنا فقط */
     padding: 20px;
     box-sizing: border-box;
     animation: fadeIn 0.4s ease;
     scrollbar-width: thin;
     scrollbar-color: #6a11cb transparent;
-    padding-bottom: 100px; /* مساحة احتياطية في الأسفل */
+    padding-bottom: 120px; /* مساحة كافية أسفل الصفحة لشريط الكتابة */
 }
 .page-section.active-section { display: flex; flex-direction: column; }
 
-.section-header { text-align: center; margin: 20px 0 30px; }
-.section-header h1 {
-    font-size: 2.2rem; margin-bottom: 10px;
-    text-shadow: 0 0 20px rgba(106, 17, 203, 0.5);
-}
-.section-header p { color: #ccc; font-size: 1rem; }
-
-/* --- 3. تصميم الشات (Chat Layout) --- */
-.chat-home-layout {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    position: relative;
-}
-
-/* شريط التحكم بالشخصية */
+/* --- 4. شريط التحكم بالشخصية (التصميم الموحد الجديد) --- */
 .controls-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 15px;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 8px 20px;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 8px 15px;
     border-radius: 50px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(138, 43, 226, 0.3);
     width: fit-content;
-    margin: 0 auto 15px auto;
+    margin: 0 auto 20px auto;
     backdrop-filter: blur(10px);
 }
 
-/* القائمة المنسدلة المخصصة */
-.custom-dropdown { position: relative; min-width: 180px; z-index: 500; }
-.dropdown-selected {
-    background: transparent; color: #fff; padding: 5px 10px;
-    cursor: pointer; display: flex; justify-content: space-between;
-    align-items: center; font-size: 0.9rem; font-weight: bold;
+/* --- القائمة المنسدلة المخصصة (Custom Dropdown) --- */
+/* هذا التصميم يضمن عدم ظهور القائمة البيضاء */
+.custom-dropdown {
+    position: relative;
+    min-width: 160px;
+    font-family: 'Tajawal';
+    z-index: 500;
 }
-.dropdown-selected i { font-size: 0.8rem; transition: 0.3s; }
+
+.dropdown-selected {
+    background: transparent;
+    color: #ffffff;
+    padding: 8px 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    border-radius: 10px;
+}
+
+.dropdown-selected:hover { color: #a18cd1; background: rgba(255,255,255,0.05); }
+.dropdown-selected i { font-size: 0.8rem; transition: 0.3s; margin-right: 5px; }
 .custom-dropdown.active .dropdown-selected i { transform: rotate(180deg); }
 
+/* القائمة المخفية */
 .dropdown-options {
-    position: absolute; top: 130%; left: 0; width: 100%;
-    background: #1a1a2e; border: 1px solid #6a11cb;
-    border-radius: 12px; overflow: hidden; display: none;
+    position: absolute;
+    top: 130%; left: 0; width: 100%;
+    background: var(--item-bg); /* خلفية كحلية داكنة */
+    border: 1px solid #6a11cb;
+    border-radius: 12px;
+    overflow: hidden;
+    display: none;
     box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    z-index: 1000;
 }
-.custom-dropdown.active .dropdown-options { display: block; }
+
+.custom-dropdown.active .dropdown-options { display: block; animation: slideUp 0.2s; }
+
 .option-item {
-    padding: 10px 15px; cursor: pointer; color: #ccc;
-    border-bottom: 1px solid rgba(255,255,255,0.05); transition: 0.2s;
+    padding: 12px 15px;
+    cursor: pointer;
+    color: #ccc;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.9rem;
+    background: var(--item-bg); /* تأكيد اللون الداكن */
+    transition: 0.2s;
 }
 .option-item:hover { background: var(--primary-grad); color: white; }
+.option-item:last-child { border-bottom: none; }
 
 /* زر التحديث */
 .refresh-btn {
-    background: rgba(255,255,255,0.1); border: none; color: white;
-    width: 35px; height: 35px; border-radius: 50%; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; transition: 0.3s;
+    background: rgba(255, 255, 255, 0.1);
+    border: none; color: white;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: 0.3s;
 }
 .refresh-btn:hover { background: #6a11cb; transform: rotate(180deg); }
 
-/* منطقة الرسائل */
+/* --- 5. الشات --- */
 .chat-box {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    display: flex; flex-direction: column; gap: 15px;
     padding: 10px;
-    margin-bottom: 20px;
+    flex: 1; /* يأخذ المساحة المتبقية */
 }
 
 .message { display: flex; gap: 10px; align-items: flex-start; animation: slideUp 0.3s; }
@@ -163,25 +204,33 @@ html, body {
     display: flex; align-items: center; justify-content: center;
 }
 .bubble {
-    background: rgba(255,255,255,0.08); padding: 12px 18px;
-    border-radius: 18px; max-width: 80%; line-height: 1.5;
+    background: rgba(30, 30, 50, 0.85); /* لون داكن للفقاعة */
+    padding: 12px 18px; border-radius: 18px;
+    max-width: 80%; line-height: 1.6; color: #eee;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
-.user-msg .bubble { background: var(--primary-grad); }
+.user-msg .bubble { background: var(--primary-grad); color: white; }
 
-/* منطقة الإدخال */
+/* --- 6. منطقة الإدخال (مثبتة في الأسفل) --- */
 .input-area {
-    background: rgba(30,30,50,0.95);
-    padding: 10px; border-radius: 30px;
+    position: fixed;
+    bottom: 0; left: 0; width: 100%;
+    background: #1a1a2e; /* خلفية صلبة داكنة (ليست شفافة) */
+    padding: 10px 15px;
+    /* التعامل مع النتوء والشريط السفلي في آيفون */
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+    z-index: 1000;
+    border-radius: 20px 20px 0 0;
+    box-sizing: border-box;
     display: flex; gap: 10px; align-items: center;
-    border: 1px solid rgba(138, 43, 226, 0.2);
-    box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
-    margin-top: auto; /* دفعها للأسفل */
 }
 
 input[type="text"] {
     flex: 1; padding: 12px 20px; border-radius: 50px; border: none;
-    background: rgba(255,255,255,0.1); color: white;
-    font-family: 'Tajawal'; font-size: 1rem; outline: none;
+    background: rgba(255,255,255,0.1);
+    color: white; font-family: 'Tajawal'; font-size: 16px; /* 16px يمنع زوم الآيفون */
+    outline: none;
 }
 .send-btn {
     width: 45px; height: 45px; border-radius: 50%; border: none;
@@ -189,39 +238,36 @@ input[type="text"] {
     display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 
-/* --- 4. العناصر العامة (أزرار، حقول) --- */
+/* --- 7. البطاقات والشبكة --- */
+.grid-container {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px; padding-bottom: 50px;
+}
+.movie-card {
+    background: rgba(0,0,0,0.4); border-radius: 12px; overflow: hidden;
+    transition: 0.3s; cursor: pointer; position: relative; aspect-ratio: 2/3;
+}
+.movie-card img { width: 100%; height: 100%; object-fit: cover; }
+.movie-card h4 {
+    position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8);
+    margin: 0; padding: 8px; font-size: 0.8rem; text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* العناصر الزجاجية العامة */
 .glass-container {
     background: var(--glass-bg); backdrop-filter: blur(10px);
     border: var(--glass-border); border-radius: 20px;
     padding: 25px; max-width: 600px; margin: 0 auto 30px;
     display: flex; flex-direction: column; gap: 15px;
 }
-
 .btn-glow {
     width: 100%; padding: 12px; border-radius: 12px; border: none;
     background: var(--primary-grad); color: white; font-weight: bold;
     cursor: pointer; transition: 0.3s;
 }
-.btn-glow:hover { box-shadow: 0 0 20px #6a11cb; transform: scale(1.02); }
 
-/* --- 5. شبكة الأفلام --- */
-.grid-container {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px; padding-bottom: 50px;
-}
-.movie-card {
-    background: rgba(0,0,0,0.3); border-radius: 12px; overflow: hidden;
-    transition: 0.3s; cursor: pointer; position: relative; aspect-ratio: 2/3;
-}
-.movie-card:hover { transform: scale(1.05); z-index: 2; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-.movie-card img { width: 100%; height: 100%; object-fit: cover; }
-.movie-card h4 {
-    position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.7);
-    margin: 0; padding: 5px; font-size: 0.8rem; text-align: center;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-
-/* --- 6. النافذة المنبثقة (Modal) --- */
+/* --- 8. النافذة المنبثقة (Modal) --- */
 .modal {
     display: none; position: fixed; z-index: 2000;
     left: 0; top: 0; width: 100%; height: 100%;
@@ -230,11 +276,12 @@ input[type="text"] {
 }
 .modal-content {
     background: #1a1a2e; width: 95%; max-width: 600px;
-    border-radius: 20px; overflow: hidden; position: relative;
-    max-height: 90vh; overflow-y: auto;
+    border-radius: 20px; position: relative;
+    max-height: 85vh; overflow-y: auto;
+    box-shadow: 0 0 30px rgba(106, 17, 203, 0.5);
 }
 .close-btn {
-    position: absolute; right: 15px; top: 10px; font-size: 30px;
+    position: absolute; right: 15px; top: 10px; font-size: 35px;
     cursor: pointer; color: white; z-index: 10; text-shadow: 0 0 5px black;
 }
 
@@ -244,55 +291,22 @@ input[type="text"] {
     text-align: center; cursor: pointer; background: rgba(255,255,255,0.05);
 }
 
-/* Animations */
+/* --- تحسينات الجوال الإضافية --- */
+@media screen and (max-width: 768px) {
+    .nav-wrapper { padding: 8px 10px; }
+    .logo { font-size: 1.2rem; }
+    
+    .chat-box { padding-bottom: 20px; } /* مسافة إضافية داخل الصندوق */
+    .page-section { padding-bottom: 140px; } /* رفع المحتوى عن شريط الكتابة */
+    
+    .controls-wrapper { width: 100%; justify-content: space-between; margin-bottom: 10px; }
+    .custom-dropdown { flex-grow: 1; min-width: auto; }
+    
+    .grid-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+}
+
 @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
 @keyframes slideUp { from {transform:translateY(20px); opacity:0;} to {transform:translateY(0); opacity:1;} }
-@keyframes slideDown { from {transform:translateY(-50px); opacity:0;} to {transform:translateY(0); opacity:1;} }
-
-/* ============================================================
-   📱 تحسينات وضع الجوال (Mobile Fixes)
-   ============================================================ */
-@media screen and (max-width: 768px) {
-    /* 1. القائمة العلوية */
-    .nav-wrapper {
-        padding: 8px 10px;
-        position: sticky; top: 0; /* تثبيت في الأعلى */
-        z-index: 1000;
-    }
-    .nav-menu {
-        overflow-x: auto; justify-content: flex-start;
-        padding-bottom: 5px; gap: 8px;
-        -webkit-overflow-scrolling: touch;
-    }
-    .nav-menu::-webkit-scrollbar { display: none; }
-    .logo { font-size: 1.2rem; }
-
-    /* 2. تحسينات الشات */
-    .controls-wrapper {
-        width: 100%; margin-bottom: 10px;
-        justify-content: space-between; padding: 8px 15px;
-    }
-    .chat-box {
-        padding-bottom: 80px; /* مساحة لشريط الكتابة */
-    }
-    
-    /* 3. تثبيت شريط الكتابة في الأسفل تماماً */
-    .input-area {
-        position: fixed;
-        bottom: 0; left: 0; width: 100%;
-        margin: 0; border-radius: 20px 20px 0 0;
-        background: #1a1a2e; /* خلفية صلبة لمنع التداخل */
-        box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
-        z-index: 999;
-        box-sizing: border-box;
-    }
-    
-    /* 4. تعديل الشبكة */
-    .grid-container {
-        grid-template-columns: repeat(2, 1fr); /* عمودين */
-        gap: 10px; padding-bottom: 80px;
-    }
-    
-    /* 5. المودال */
-    .modal-content { width: 95%; max-height: 85vh; }
-}
