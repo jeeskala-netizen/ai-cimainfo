@@ -11,7 +11,14 @@
 
     <div class="nav-wrapper">
         <div class="logo">{{ t['app_title'] }}</div>
-        <ul class="nav-menu">
+        
+        <div class="hamburger" onclick="toggleMobileMenu()">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </div>
+
+        <ul class="nav-menu" id="nav-menu">
             <li onclick="showPage('chat_home')" class="active"><i class="fa-solid fa-comments"></i> {{ t['menu'][0] }}</li>
             <li onclick="showPage('browse_movies'); loadContent('movie', 'm-res')"><i class="fa-solid fa-film"></i> {{ t['menu'][1] }}</li>
             <li onclick="showPage('browse_tv'); loadContent('tv', 't-res')"><i class="fa-solid fa-tv"></i> {{ t['menu'][2] }}</li>
@@ -20,92 +27,56 @@
             <li onclick="showPage('matchmaker')"><i class="fa-solid fa-people-arrows"></i> {{ t['menu'][5] }}</li>
             <li onclick="showPage('library')"><i class="fa-solid fa-heart"></i> {{ t['menu'][6] }}</li>
         </ul>
+        
         <div class="lang-switch">
-            <a href="/change_lang/ar">AR</a> | <a href="/change_lang/en">EN</a> | <a href="/change_lang/de">DE</a>
+            <a href="/change_lang/ar">AR</a> | <a href="/change_lang/en">EN</a>
         </div>
     </div>
 
     <div class="main-container">
         
         <div id="chat_home" class="page-section active-section">
-            <div class="input-area" style="margin-bottom: 20px; justify-content: center;">
-                <label style="color:#ccc; margin:0 10px;">{{ t['persona_label'] }}</label>
-                <select id="persona-select" onchange="resetChat()">
-                    {% for i in range(4) %} <option value="{{ i }}">{{ t['personas'][i] }}</option> {% endfor %}
-                </select>
-                <button onclick="resetChat()" style="padding: 5px 15px; font-size: 0.9rem;">
-                    <i class="fa-solid fa-rotate-right"></i> {{ t['new_chat'] }}
-                </button>
-            </div>
-            <div id="chatbox" class="chat-box">
-                <div class="message bot-msg"><div class="avatar">🤖</div><div class="bubble">{{ t['welcome_msgs'][0] }}</div></div>
-            </div>
-            <div class="input-area">
-                <input type="text" id="user-input" placeholder="{{ t['input_placeholder'] }}">
-                <button class="send-btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
-            </div>
-        </div>
-
-        <div id="browse_movies" class="page-section">
-            <h2 style="text-align: center;">{{ t['browse_movies'] }}</h2>
-            <div class="input-area" style="max-width: 600px; margin: 0 auto 30px;">
-                <input type="text" id="m-search" placeholder="{{ t['search_placeholder'] }}">
-                <button class="send-btn" onclick="search('m-search', 'movie', 'm-res')">🔍</button>
-            </div>
-            <div id="m-res" class="grid-container"></div>
-        </div>
-
-        <div id="browse_tv" class="page-section">
-            <h2 style="text-align: center;">{{ t['browse_tv'] }}</h2>
-            <div class="input-area" style="max-width: 600px; margin: 0 auto 30px;">
-                <input type="text" id="t-search" placeholder="{{ t['search_placeholder'] }}">
-                <button class="send-btn" onclick="search('t-search', 'tv', 't-res')">🔍</button>
-            </div>
-            <div id="t-res" class="grid-container"></div>
-        </div>
-
-        <div id="visual_detective" class="page-section">
-            <h2 style="text-align: center;">{{ t['headers'][0] }}</h2>
-            <p style="text-align: center; color:#ccc;">{{ t['descs'][0] }}</p>
-            <div style="max-width: 500px; margin: 30px auto; text-align: center;">
-                <input type="file" id="img-up" style="display:none" accept="image/*" onchange="previewImage()">
-                <div class="file-upload-wrapper" onclick="document.getElementById('img-up').click()">
-                    <i class="fa-solid fa-cloud-arrow-up" style="font-size: 3rem; color: #6a11cb;"></i>
-                    <p>{{ t['upload_text'] }}</p>
+            <div class="chat-home-layout">
+                <div class="controls-wrapper">
+                    <span style="color:#aaa;"><i class="fa-solid fa-masks-theater"></i></span>
+                    <div class="custom-dropdown" id="persona-dropdown">
+                        <div class="dropdown-selected" onclick="toggleDropdown()">
+                            <span id="selected-text">{{ t['personas'][0] }}</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <div class="dropdown-options">
+                            {% for i in range(4) %}
+                                <div class="option-item" onclick="selectPersona({{ i }}, '{{ t['personas'][i] }}')">
+                                    {{ t['personas'][i] }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" id="persona-value" value="0">
+                    </div>
+                    <button class="refresh-btn" onclick="resetChat()"><i class="fa-solid fa-rotate-right"></i></button>
                 </div>
-                <img id="img-preview" style="max-width: 100%; margin-top: 20px; border-radius: 15px; display: none;">
-                <br>
-                <button id="analyze-btn" class="btn-primary" style="display:none; width:100%;" onclick="analyzeImage()">{{ t['analyze_btn'] }}</button>
+
+                <div id="chatbox" class="chat-box">
+                    <div class="message bot-msg">
+                        <div class="avatar">🤖</div>
+                        <div class="bubble" id="welcome-bubble">{{ t['welcome_msgs'][0] }}</div>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <input type="text" id="user-input" placeholder="{{ t['input_placeholder'] }}">
+                    <button class="send-btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
             </div>
-            <div id="v-res" class="chat-box" style="margin-top:20px;"></div>
         </div>
 
-        <div id="dna_analysis" class="page-section">
-            <h2 style="text-align: center;">{{ t['headers'][1] }}</h2>
-            <div style="max-width: 500px; margin: 30px auto; display: flex; flex-direction: column; gap: 15px;">
-                <input type="text" id="d1" placeholder="{{ t['dna_inputs'][0] }}">
-                <input type="text" id="d2" placeholder="{{ t['dna_inputs'][1] }}">
-                <input type="text" id="d3" placeholder="{{ t['dna_inputs'][2] }}">
-                <button class="btn-primary" onclick="analyzeDNA()">{{ t['dna_btn'] }}</button>
-            </div>
-            <div id="d-res" class="chat-box" style="margin-top:20px;"></div>
-        </div>
+        <div id="browse_movies" class="page-section"><div class="section-header"><h1>{{ t['browse_movies'] }}</h1></div><div class="glass-container" style="flex-direction:row; padding:10px;"><input type="text" id="m-search" placeholder="{{ t['search_placeholder'] }}" style="background:transparent; border:none;"><button class="send-btn" onclick="search('m-search', 'movie', 'm-res')" style="width:40px; height:40px;">🔍</button></div><div id="m-res" class="grid-container" style="margin-top:20px;"></div></div>
+        <div id="browse_tv" class="page-section"><div class="section-header"><h1>{{ t['browse_tv'] }}</h1></div><div class="glass-container" style="flex-direction:row; padding:10px;"><input type="text" id="t-search" placeholder="{{ t['search_placeholder'] }}" style="background:transparent; border:none;"><button class="send-btn" onclick="search('t-search', 'tv', 't-res')" style="width:40px; height:40px;">🔍</button></div><div id="t-res" class="grid-container" style="margin-top:20px;"></div></div>
+        <div id="visual_detective" class="page-section"><div class="section-header"><h1>{{ t['headers'][0] }}</h1><p>{{ t['descs'][0] }}</p></div><div class="glass-container" style="text-align:center;"><input type="file" id="img-up" hidden onchange="previewImage()"><div onclick="document.getElementById('img-up').click()" style="cursor:pointer; border:2px dashed #6a11cb; padding:30px; border-radius:15px;"><i class="fa-solid fa-cloud-upload-alt" style="font-size:3rem; color:#6a11cb;"></i><p>{{ t['upload_text'] }}</p></div><img id="img-preview" style="max-width:100%; margin-top:15px; border-radius:10px; display:none;"><button id="analyze-btn" class="btn-glow" style="display:none; margin-top:15px;" onclick="analyzeImage()">{{ t['analyze_btn'] }}</button></div><div id="v-res" class="chat-box" style="margin-top:20px;"></div></div>
+        <div id="dna_analysis" class="page-section"><div class="section-header"><h1>{{ t['headers'][1] }}</h1><p>{{ t['descs'][1] }}</p></div><div class="glass-container"><input type="text" id="d1" placeholder="{{ t['dna_inputs'][0] }}" class="modern-input" style="width:100%; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white;"><input type="text" id="d2" placeholder="{{ t['dna_inputs'][1] }}" class="modern-input" style="width:100%; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white;"><input type="text" id="d3" placeholder="{{ t['dna_inputs'][2] }}" class="modern-input" style="width:100%; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white;"><button class="btn-glow" onclick="analyzeDNA()">{{ t['dna_btn'] }}</button></div><div id="d-res" class="chat-box" style="margin-top:20px;"></div></div>
+        <div id="matchmaker" class="page-section"><div class="section-header"><h1>{{ t['headers'][2] }}</h1><p>{{ t['descs'][2] }}</p></div><div class="glass-container"><div style="display:flex; gap:10px; width:100%;"><input type="text" id="u1" placeholder="{{ t['match_inputs'][0] }}" class="modern-input" style="width:100%; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white;"><input type="text" id="u2" placeholder="{{ t['match_inputs'][1] }}" class="modern-input" style="width:100%; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:white;"></div><button class="btn-glow" onclick="findMatch()">{{ t['match_btn'] }}</button></div><div id="ma-res" class="chat-box" style="margin-top:20px;"></div></div>
+        <div id="library" class="page-section"><div class="section-header"><h1>{{ t['headers'][4] }}</h1></div><div class="glass-container" style="text-align:center;"><p>🚧 (قريباً)</p></div></div>
 
-        <div id="matchmaker" class="page-section">
-            <h2 style="text-align: center;">{{ t['headers'][2] }}</h2>
-            <p style="text-align: center; color:#ccc;">{{ t['descs'][2] }}</p>
-            <div style="max-width: 600px; margin: 30px auto; display: flex; gap: 10px;">
-                <input type="text" id="u1" placeholder="{{ t['match_inputs'][0] }}">
-                <input type="text" id="u2" placeholder="{{ t['match_inputs'][1] }}">
-            </div>
-            <div style="text-align: center;"><button class="btn-primary" onclick="findMatch()">{{ t['match_btn'] }}</button></div>
-            <div id="ma-res" class="chat-box" style="margin-top: 20px;"></div>
-        </div>
-
-        <div id="library" class="page-section">
-            <h2 style="text-align: center;">{{ t['headers'][4] }}</h2>
-            <p style="text-align: center;">🚧 قريباً</p>
-        </div>
     </div>
 
     <div id="modal" class="modal">
@@ -117,161 +88,68 @@
 
     <script>
         const t_welcome = {{ t['welcome_msgs'] | tojson }};
-        
-        // --- History & Navigation Logic ---
+        const t_personas = {{ t['personas'] | tojson }};
+
+        // --- وظيفة القائمة (Hamburger) ---
+        function toggleMobileMenu() {
+            document.querySelector('.hamburger').classList.toggle('active');
+            document.querySelector('.nav-menu').classList.toggle('active');
+        }
+
+        // --- التنقل بين الصفحات ---
+        function showPage(id) {
+            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active-section'));
+            document.getElementById(id).classList.add('active-section');
+            
+            document.querySelectorAll('.nav-menu li').forEach(li => li.classList.remove('active'));
+            // تحديد الزر النشط بدقة (باستخدام onclick)
+            const activeBtn = document.querySelector(`.nav-menu li[onclick*="${id}"]`);
+            if(activeBtn) activeBtn.classList.add('active');
+
+            // إغلاق القائمة في الجوال بعد الاختيار
+            document.querySelector('.hamburger').classList.remove('active');
+            document.querySelector('.nav-menu').classList.remove('active');
+        }
+
+        // --- القائمة المنسدلة للشخصيات ---
+        function toggleDropdown() { document.getElementById("persona-dropdown").classList.toggle("active"); }
+        function selectPersona(index, name) {
+            document.getElementById("selected-text").innerText = name;
+            document.getElementById("persona-value").value = index;
+            document.getElementById("persona-dropdown").classList.remove("active");
+            document.getElementById('welcome-bubble').innerText = t_welcome[index];
+        }
+        window.onclick = function(e) {
+            if (!e.target.matches('.dropdown-selected') && !e.target.matches('.dropdown-selected *')) {
+                document.getElementById("persona-dropdown").classList.remove('active');
+            }
+        }
+
+        // --- زر العودة (History) ---
         window.history.replaceState({view: 'home'}, null, "");
-        
         window.addEventListener('popstate', function(event) {
             const modal = document.getElementById('modal');
             if (modal.style.display === "flex") {
                 modal.style.display = "none";
             } else if (event.state && event.state.view === 'page') {
-                showPage(event.state.id, false);
+                // إظهار الصفحة بدون تسجيل تاريخ جديد
+                document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active-section'));
+                document.getElementById(event.state.id).classList.add('active-section');
             }
         });
 
-        function showPage(id, addHistory=true) {
-            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active-section'));
-            document.getElementById(id).classList.add('active-section');
-            document.querySelectorAll('.nav-menu li').forEach(li => li.classList.remove('active'));
-            // Highlight active link
-            const targetLink = document.querySelector(`li[onclick*="${id}"]`);
-            if(targetLink) targetLink.classList.add('active');
-
-            if(addHistory) history.pushState({view: 'page', id: id}, null, `?p=${id}`);
-        }
-
+        // --- Modal ---
         function closeModal() {
             document.getElementById('modal').style.display = 'none';
-            // الرجوع للخلف في التاريخ لكي لا يبقى الرابط معلقاً
             if(history.state && history.state.view === 'modal') history.back();
         }
 
-        // --- Content Loading ---
-        async function loadContent(type, outputId) {
-            const div = document.getElementById(outputId);
-            if(div.innerHTML.trim() !== "") return;
-            div.innerHTML = '<div style="text-align:center; color:#ccc;">Loading...</div>';
-            try {
-                const fd = new FormData(); fd.append('type', type);
-                const res = await fetch('/browse_content', {method:'POST', body:fd});
-                const data = await res.json();
-                renderGrid(data.movies, div);
-            } catch(e) { div.innerHTML = '<p>Error.</p>'; }
-        }
-
-        function renderGrid(movies, container) {
-            container.innerHTML = '';
-            let html = `<div class="grid-container">`;
-            movies.forEach(m => {
-                const mStr = JSON.stringify(m).replace(/"/g, "&quot;");
-                html += `<div class="movie-card" onclick="openModal(${mStr})"><img src="${m.poster}"><h4>${m.title}</h4></div>`;
-            });
-            html += `</div>`;
-            container.innerHTML = html;
-        }
-
-        // --- Chat Functions (XSS Protected) ---
-        function resetChat() {
-            const idx = document.getElementById('persona-select').value;
-            document.getElementById('chatbox').innerHTML = `
-                <div class="message bot-msg"><div class="avatar">🤖</div><div class="bubble">${t_welcome[idx]}</div></div>`;
-        }
-
-        async function sendMessage() {
-            const msgInput = document.getElementById('user-input');
-            const msg = msgInput.value;
-            if(!msg) return;
-            
-            const box = document.getElementById('chatbox');
-            
-            // XSS Protection: Create elements instead of innerHTML
-            const userMsgDiv = document.createElement('div');
-            userMsgDiv.className = 'message user-msg';
-            const bubble = document.createElement('div');
-            bubble.className = 'bubble';
-            bubble.textContent = msg; // Secure way
-            userMsgDiv.appendChild(bubble);
-            box.appendChild(userMsgDiv);
-            
-            msgInput.value = '';
-            
-            // Loader
-            const loaderDiv = document.createElement('div');
-            loaderDiv.id = 'loader';
-            loaderDiv.className = 'message bot-msg';
-            loaderDiv.innerHTML = '<div class="avatar">🤖</div><div class="bubble">...</div>';
-            box.appendChild(loaderDiv);
-            box.scrollTop = box.scrollHeight;
-
-            const fd = new FormData();
-            fd.append('msg', msg);
-            fd.append('persona', document.getElementById('persona-select').options[document.getElementById('persona-select').selectedIndex].text);
-
-            try {
-                const res = await fetch('/chat', {method:'POST', body:fd});
-                const data = await res.json();
-                document.getElementById('loader').remove();
-                renderResponse(data, box);
-            } catch(e) { console.error(e); }
-        }
-
-        function renderResponse(data, container) {
-            let html = `<div class="message bot-msg"><div class="avatar">🤖</div><div class="bubble" style="max-width:100%">${data.response.replace(/\n/g, '<br>')}</div></div>`;
-            if (data.movies && data.movies.length > 0) {
-                html += `<div class="movie-gallery">`;
-                data.movies.forEach(m => {
-                    const mStr = JSON.stringify(m).replace(/"/g, "&quot;");
-                    html += `<div class="movie-card" onclick="openModal(${mStr})"><img src="${m.poster}"><h4>${m.title}</h4></div>`;
-                });
-                html += `</div>`;
-            }
-            container.insertAdjacentHTML('beforeend', html);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // --- Other Features ---
-        async function search(inId, type, outId) {
-            const q = document.getElementById(inId).value;
-            const fd = new FormData(); fd.append('query', q); fd.append('type', type);
-            const res = await fetch('/search', {method:'POST', body:fd});
-            renderGrid((await res.json()).movies, document.getElementById(outId));
-        }
-
-        async function analyzeDNA() {
-            const fd = new FormData();
-            fd.append('m1', document.getElementById('d1').value);
-            fd.append('m2', document.getElementById('d2').value);
-            fd.append('m3', document.getElementById('d3').value);
-            const res = await fetch('/analyze_dna', {method:'POST', body:fd});
-            renderResponse(await res.json(), document.getElementById('d-res'));
-        }
-
-        async function findMatch() {
-            const fd = new FormData();
-            fd.append('u1', document.getElementById('u1').value);
-            fd.append('u2', document.getElementById('u2').value);
-            const res = await fetch('/matchmaker', {method:'POST', body:fd});
-            renderResponse(await res.json(), document.getElementById('ma-res'));
-        }
-
-        function previewImage() {
-            const file = document.getElementById('img-up').files[0];
-            if(file) {
-                document.getElementById('img-preview').src = URL.createObjectURL(file);
-                document.getElementById('img-preview').style.display = 'block';
-                document.getElementById('analyze-btn').style.display = 'inline-block';
-            }
-        }
-        async function analyzeImage() {
-            const fd = new FormData(); fd.append('image', document.getElementById('img-up').files[0]);
-            const res = await fetch('/analyze_image', {method:'POST', body:fd});
-            renderResponse(await res.json(), document.getElementById('v-res'));
-        }
-
-        // --- Modal ---
+        // ... (باقي دوال الجافاسكريبت: loadContent, resetChat, sendMessage, search, analyze..., openModal) ...
+        // تأكد من نسخها من الرد السابق، هي تعمل بشكل ممتاز. 
+        // للإيجاز سأعيد وضع أهم دالة هنا (openModal)
+        
         async function openModal(movie) {
-            history.pushState({view: 'modal'}, null, "#details"); // Add to history
+            history.pushState({view: 'modal'}, null, "#details");
             const modal = document.getElementById('modal');
             modal.style.display = "flex";
             const body = document.getElementById('modal-body');
@@ -285,18 +163,102 @@
                     <p style="line-height:1.6">${movie.overview}</p>
                     <div id="provs" style="margin-top:20px">Loading...</div>
                 </div>`;
-            
             const fd = new FormData(); fd.append('id', movie.id); fd.append('type', movie.type);
             const res = await fetch('/get_details', {method:'POST', body:fd});
             const data = await res.json();
-            
-            let pHTML = `<h5>{{ t['details']['providers'] }}</h5><div style="display:flex; gap:10px; margin-bottom:20px;">`;
+            let pHTML = `<h5>Available on:</h5><div style="display:flex; gap:10px; margin-bottom:20px;">`;
             if(data.providers.length > 0) data.providers.forEach(p => pHTML += `<img src="${p.logo}" width="50" style="border-radius:10px;">`);
-            else pHTML += `<small>{{ t['details']['no_prov'] }}</small>`;
+            else pHTML += `<small>Not available digitally.</small>`;
             pHTML += `</div>`;
-            
-            if(data.trailer) pHTML += `<a href="https://www.youtube.com/watch?v=${data.trailer}" target="_blank" class="btn-primary" style="text-decoration:none;">🎥 {{ t['details']['trailer'] }}</a>`;
+            if(data.trailer) pHTML += `<a href="https://www.youtube.com/watch?v=${data.trailer}" target="_blank" class="btn-glow" style="text-decoration:none; padding:8px 20px; margin-right:auto; width:auto;">🎥 Trailer</a>`;
             document.getElementById('provs').innerHTML = pHTML;
+        }
+        
+        async function loadContent(type, outputId) {
+            const div = document.getElementById(outputId);
+            if(div.innerHTML.trim() !== "") return;
+            div.innerHTML = '<div style="text-align:center; color:#ccc;">Loading...</div>';
+            try {
+                const fd = new FormData(); fd.append('type', type);
+                const res = await fetch('/browse_content', {method:'POST', body:fd});
+                const data = await res.json();
+                renderGrid(data.movies, div);
+            } catch(e) { div.innerHTML = 'Error'; }
+        }
+
+        function renderGrid(movies, container) {
+            container.innerHTML = '';
+            let html = `<div class="grid-container">`;
+            movies.forEach(m => {
+                const mStr = JSON.stringify(m).replace(/"/g, "&quot;");
+                html += `<div class="movie-card" onclick="openModal(${mStr})"><img src="${m.poster}"><h4>${m.title}</h4></div>`;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+        
+        async function sendMessage() {
+            const msg = document.getElementById('user-input').value;
+            if(!msg) return;
+            const box = document.getElementById('chatbox');
+            box.innerHTML += `<div class="message user-msg"><div class="bubble">${msg}</div></div>`;
+            document.getElementById('user-input').value = '';
+            const lid = 'l-'+Date.now();
+            box.innerHTML += `<div id="${lid}" class="message bot-msg"><div class="avatar">🤖</div><div class="bubble">...</div></div>`;
+            box.scrollTop = box.scrollHeight;
+            const fd = new FormData(); fd.append('msg', msg); fd.append('persona', t_personas[document.getElementById('persona-value').value]);
+            const res = await fetch('/chat', {method:'POST', body:fd});
+            const data = await res.json();
+            document.getElementById(lid).remove();
+            let html = `<div class="message bot-msg"><div class="avatar">🤖</div><div class="bubble" style="max-width:100%">${data.response.replace(/\n/g, '<br>')}</div></div>`;
+            if(data.movies && data.movies.length>0) {
+                html += `<div style="display:flex; gap:10px; overflow-x:auto; padding:10px 0 10px 50px;">`;
+                data.movies.forEach(m => {
+                    const mStr = JSON.stringify(m).replace(/"/g, "&quot;");
+                    html += `<div class="movie-card" style="min-width:120px; aspect-ratio:2/3;" onclick="openModal(${mStr})"><img src="${m.poster}"></div>`;
+                });
+                html += `</div>`;
+            }
+            box.innerHTML += html;
+            box.scrollTop = box.scrollHeight;
+        }
+        
+        async function search(inId, type, outId) {
+            const q = document.getElementById(inId).value;
+            const fd = new FormData(); fd.append('query', q); fd.append('type', type);
+            const res = await fetch('/search', {method:'POST', body:fd});
+            renderGrid((await res.json()).movies, document.getElementById(outId));
+        }
+        
+        function renderResults(data, containerId) {
+            const div = document.getElementById(containerId);
+            let html = `<div class="glass-container" style="text-align:right;"><p>${data.response.replace(/\n/g, '<br>')}</p></div>`;
+            renderGrid(data.movies, div);
+            div.innerHTML = html + div.innerHTML;
+        }
+        
+        async function analyzeImage() {
+            const fd = new FormData(); fd.append('image', document.getElementById('img-up').files[0]);
+            const res = await fetch('/analyze_image', {method:'POST', body:fd});
+            renderResults(await res.json(), 'v-res');
+        }
+        async function analyzeDNA() {
+            const fd = new FormData(); fd.append('m1', document.getElementById('d1').value); fd.append('m2', document.getElementById('d2').value); fd.append('m3', document.getElementById('d3').value);
+            const res = await fetch('/analyze_dna', {method:'POST', body:fd});
+            renderResults(await res.json(), 'd-res');
+        }
+        async function findMatch() {
+            const fd = new FormData(); fd.append('u1', document.getElementById('u1').value); fd.append('u2', document.getElementById('u2').value);
+            const res = await fetch('/matchmaker', {method:'POST', body:fd});
+            renderResults(await res.json(), 'ma-res');
+        }
+        function previewImage() {
+            const file = document.getElementById('img-up').files[0];
+            if(file) {
+                document.getElementById('img-preview').src = URL.createObjectURL(file);
+                document.getElementById('img-preview').style.display = 'block';
+                document.getElementById('analyze-btn').style.display = 'inline-block';
+            }
         }
 
         document.getElementById("user-input").addEventListener("keypress", function(e){ if(e.key==="Enter") sendMessage(); });
