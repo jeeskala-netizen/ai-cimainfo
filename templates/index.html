@@ -146,15 +146,74 @@
         const t_welcome = {{ t['welcome_msgs'] | tojson }};
         const t_personas = {{ t['personas'] | tojson }};
 
-        function showPage(id) {
-            // إخفاء كل الأقسام
+        // 1. إعداد زر الرجوع عند بدء التشغيل
+        window.history.replaceState({view: 'home'}, null, "");
+
+        // مراقبة زر الرجوع في الجوال
+        window.addEventListener('popstate', function(event) {
+            const modal = document.getElementById('modal');
+            
+            // إذا كانت النافذة مفتوحة، نغلقها
+            if (modal.style.display === "flex") {
+                modal.style.display = "none";
+            } 
+            // إذا كنا في صفحة أخرى، نعود للصفحة السابقة
+            else if (event.state && event.state.view === 'page') {
+                showPage(event.state.id, false); // false تعني لا تسجل في التاريخ مرة أخرى
+            }
+        });
+
+        // 2. التنقل بين الصفحات (معدلة لتسجيل التاريخ)
+        function showPage(id, addHistory=true) {
             document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active-section'));
-            // إظهار القسم المطلوب فقط
             document.getElementById(id).classList.add('active-section');
-            // تحديث القائمة
             document.querySelectorAll('.nav-menu li').forEach(li => li.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            
+            // تفعيل الزر المناسب في القائمة
+            // (نبحث عن الزر الذي يستدعي هذه الصفحة)
+            const activeLink = document.querySelector(`li[onclick*="${id}"]`);
+            if(activeLink) activeLink.classList.add('active');
+
+            // تسجيل الحركة في تاريخ المتصفح
+            if(addHistory) {
+                history.pushState({view: 'page', id: id}, null, `?p=${id}`);
+            }
         }
+
+        // 3. فتح التفاصيل (معدلة لتسجيل التاريخ)
+        async function openModal(movie) {
+            // تسجيل أننا فتحنا نافذة جديدة لكي يعمل زر الرجوع
+            history.pushState({view: 'modal'}, null, "#details");
+
+            const modal = document.getElementById('modal');
+            modal.style.display = "flex";
+            const body = document.getElementById('modal-body');
+            
+            body.innerHTML = `
+                <div style="height:300px; background:url('${movie.poster}') center/cover; position:relative;">
+                    <div style="position:absolute; bottom:0; background:linear-gradient(to top, #1a1a2e, transparent); width:100%; padding:20px; box-sizing:border-box;">
+                        <h1 style="margin:0; text-shadow:0 0 10px black">${movie.title}</h1>
+                    </div>
+                </div>
+                <div style="padding:20px;">
+                    <p style="line-height:1.6">${movie.overview}</p>
+                    <div id="provs" style="margin-top:20px">Loading...</div>
+                </div>`;
+            
+            const fd = new FormData(); fd.append('id', movie.id); fd.append('type', movie.type);
+            const res = await fetch('/get_details', {method:'POST', body:fd});
+            const data = await res.json();
+            
+            let pHTML = `<h5>Available on:</h5><div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">`;
+            if(data.providers.length > 0) data.providers.forEach(p => pHTML += `<img src="${p.logo}" width="45" style="border-radius:10px;">`);
+            else pHTML += `<span style="color:#777">Not on streaming.</span>`;
+            
+            if(data.trailer) pHTML += `<a href="https://youtube.com/watch?v=${data.trailer}" target="_blank" class="btn-glow" style="margin-right:auto; width:auto; padding:8px 20px; text-decoration:none;">🎥 Trailer</a>`;
+            pHTML += `</div>`;
+            document.getElementById('provs').innerHTML = pHTML;
+        }
+
+        // --- باقي الدوال كما هي ---
 
         function toggleDropdown() { document.getElementById("persona-dropdown").classList.toggle("active"); }
         
@@ -180,36 +239,36 @@
         async function loadContent(type, outputId) {
             const div = document.getElementById(outputId);
             if(div.innerHTML.trim() !== "") return;
-            div.innerHTML = '<div style="text-align:center; color:#ccc;">جاري التحميل...</div>';
+            div.innerHTML = '<div style="text-align:center; padding:20px;">Loading...</div>';
             try {
                 const fd = new FormData(); fd.append('type', type);
                 const res = await fetch('/browse_content', {method:'POST', body:fd});
                 const data = await res.json();
                 renderGrid(data.movies, div);
-            } catch(e) { div.innerHTML = 'Error'; }
+            } catch(e) { div.innerHTML = '<p>Error.</p>'; }
         }
 
         function renderGrid(movies, container) {
             container.innerHTML = '';
-            let html = `<div class="grid-container">`;
+            let html = `<div class="universal-grid">`;
             movies.forEach(m => {
                 const mStr = JSON.stringify(m).replace(/"/g, "&quot;");
-                html += `<div class="movie-card" onclick="openModal(${mStr})"><img src="${m.poster}"><h4>${m.title}</h4></div>`;
+                html += `
+                <div class="modern-card" onclick="openModal(${mStr})">
+                    <img src="${m.poster}">
+                    <div class="overlay"><h4>${m.title}</h4></div>
+                </div>`;
             });
             html += `</div>`;
             container.innerHTML = html;
         }
 
-        // ... (باقي الدوال: sendMessage, search, analyzeImage, analyzeDNA, findMatch, openModal - انسخها من الرد السابق، هي تعمل بشكل صحيح) ...
-        // للإيجاز، تأكد من نسخ دالة openModal و sendMessage كما كانت.
-        
         async function sendMessage() {
             const msg = document.getElementById('user-input').value;
             if(!msg) return;
             const box = document.getElementById('chatbox');
             box.innerHTML += `<div class="message user-msg"><div class="bubble">${msg}</div></div>`;
             document.getElementById('user-input').value = '';
-            
             const lid = 'l-'+Date.now();
             box.innerHTML += `<div id="${lid}" class="message bot-msg"><div class="avatar">🤖</div><div class="bubble">...</div></div>`;
             box.scrollTop = box.scrollHeight;
@@ -227,7 +286,7 @@
                 html += `<div style="display:flex; gap:10px; overflow-x:auto; padding:10px 0 10px 50px;">`;
                 data.movies.forEach(m => {
                     const mStr = JSON.stringify(m).replace(/"/g, "&quot;");
-                    html += `<div class="movie-card" style="min-width:120px; aspect-ratio:2/3;" onclick="openModal(${mStr})"><img src="${m.poster}"></div>`;
+                    html += `<div class="modern-card" style="min-width:120px; aspect-ratio:2/3;" onclick="openModal(${mStr})"><img src="${m.poster}"></div>`;
                 });
                 html += `</div>`;
             }
@@ -270,7 +329,6 @@
             const res = await fetch('/matchmaker', {method:'POST', body:fd});
             renderResults(await res.json(), 'ma-res');
         }
-        
         function previewImage() {
             const file = document.getElementById('img-up').files[0];
             if(file) {
@@ -280,32 +338,8 @@
             }
         }
 
-        async function openModal(movie) {
-            const modal = document.getElementById('modal');
-            modal.style.display = "flex";
-            const body = document.getElementById('modal-body');
-            body.innerHTML = `
-                <div style="height:300px; background:url('${movie.poster}') center/cover; position:relative;">
-                    <div style="position:absolute; bottom:0; background:linear-gradient(to top, #1a1a2e, transparent); width:100%; padding:20px; box-sizing:border-box;">
-                        <h1 style="margin:0; text-shadow:0 0 10px black">${movie.title}</h1>
-                    </div>
-                </div>
-                <div style="padding:20px;">
-                    <p style="line-height:1.6">${movie.overview}</p>
-                    <div id="provs" style="margin-top:20px">Loading...</div>
-                </div>`;
-            const fd = new FormData(); fd.append('id', movie.id); fd.append('type', movie.type);
-            const res = await fetch('/get_details', {method:'POST', body:fd});
-            const data = await res.json();
-            let pHTML = `<div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">`;
-            if(data.providers.length > 0) data.providers.forEach(p => pHTML += `<img src="${p.logo}" width="45" style="border-radius:10px;">`);
-            else pHTML += `<span style="color:#777">Not on streaming.</span>`;
-            if(data.trailer) pHTML += `<a href="https://youtube.com/watch?v=${data.trailer}" target="_blank" class="btn-glow" style="margin-right:auto; width:auto; padding:8px 20px; text-decoration:none;">🎥 Trailer</a>`;
-            pHTML += `</div>`;
-            document.getElementById('provs').innerHTML = pHTML;
-        }
-
-        document.getElementById("user-input").addEventListener("keypress", function(e){ if(e.key==="Enter") sendMessage(); });
+        document.getElementById("user-input").addEventListener("keypress", function(e){if(e.key==="Enter") sendMessage();});
     </script>
 </body>
 </html>
+
