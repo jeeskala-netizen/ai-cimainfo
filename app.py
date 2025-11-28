@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request, jsonify
-import api
-import languages
-import config
-import re
+import api, languages, config, re, os
 
 app = Flask(__name__)
+# مفتاح سري عشوائي لتأمين الجلسات (مهم جداً)
+app.secret_key = os.urandom(24) 
+
 current_lang = "ar"
 
 @app.route('/')
@@ -15,11 +15,9 @@ def home():
 @app.route('/change_lang/<lang>')
 def change_lang(lang):
     global current_lang
-    if lang in ['ar', 'en', 'de']:
-        current_lang = lang
+    if lang in ['ar', 'en', 'de']: current_lang = lang
     return home()
 
-# --- دالة مساعدة لاستخراج بيانات الأفلام ---
 def extract_movies_from_text(text):
     matches = re.findall(r'\[(.*?)\]', text)
     movies_data = []
@@ -39,61 +37,51 @@ def extract_movies_from_text(text):
                 })
     return movies_data
 
-# --- المسارات (Routes) ---
+# --- Routes ---
 
 @app.route('/chat', methods=['POST'])
 def chat():
     msg = request.form.get('msg')
+    if not msg: return jsonify({'response': '...', 'movies': []}) # حماية من الإدخال الفارغ
+    
     persona = request.form.get('persona')
-    # لاحظ: هنا نستخدم قائمة بسيطة للتاريخ، يمكن تطويرها لـ Session لاحقاً
-    response_text = api.chat_with_ai_formatted(
-        [{"role": "user", "content": msg}], 
-        persona, 
-        current_lang
-    )
-    movies = extract_movies_from_text(response_text)
-    return jsonify({'response': response_text, 'movies': movies})
+    response_text = api.chat_with_ai_formatted([{"role": "user", "content": msg}], persona, current_lang)
+    return jsonify({'response': response_text, 'movies': extract_movies_from_text(response_text)})
 
 @app.route('/search', methods=['POST'])
 def search():
     query = request.form.get('query')
     ctype = request.form.get('type')
+    if not query: return jsonify({'movies': []})
+    
     results = api.search_tmdb(query, ctype)
     movies = []
     for item in results:
         if item.get('poster_path'):
-            movies.append({
-                "title": item.get('title') or item.get('name'),
-                "poster": config.IMAGE_URL + item['poster_path'],
-                "id": item['id'],
-                "type": 'movie' if item.get('title') else 'tv',
-                "overview": item.get('overview', '')
-            })
+            movies.append({"title": item.get('title') or item.get('name'), "poster": config.IMAGE_URL + item['poster_path'], "id": item['id'], "type": 'movie' if item.get('title') else 'tv', "overview": item.get('overview', '')})
     return jsonify({'movies': movies})
 
-# ✅ هذا هو المسار الجديد المهم للتحميل التلقائي
 @app.route('/browse_content', methods=['POST'])
 def browse_content():
     content_type = request.form.get('type')
     category = request.form.get('category', 'popular')
-    
     results = api.fetch_content(content_type, category)
     movies = []
     for item in results:
         if item.get('poster_path'):
-            movies.append({
-                "title": item.get('title') or item.get('name'),
-                "poster": config.IMAGE_URL + item['poster_path'],
-                "id": item['id'],
-                "type": content_type,
-                "overview": item.get('overview', '')
-            })
+            movies.append({"title": item.get('title') or item.get('name'), "poster": config.IMAGE_URL + item['poster_path'], "id": item['id'], "type": content_type, "overview": item.get('overview', '')})
     return jsonify({'movies': movies})
 
 @app.route('/analyze_image', methods=['POST'])
 def analyze_image():
     if 'image' not in request.files: return jsonify({'error': 'No image'})
     file = request.files['image']
+    if file.filename == '': return jsonify({'error': 'No selection'})
+    
+    # تحقق أمني بسيط من الامتداد
+    if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+        return jsonify({'error': 'Invalid file type'})
+
     ai_text = api.analyze_image_search(file, current_lang)
     return jsonify({'response': ai_text, 'movies': extract_movies_from_text(ai_text)})
 
@@ -116,8 +104,7 @@ def get_details():
     clean_provs = []
     if providers:
         for p in providers:
-            if p.get('logo_path'):
-                clean_provs.append({'name': p['provider_name'], 'logo': config.IMAGE_URL + p['logo_path']})
+            if p.get('logo_path'): clean_provs.append({'name': p['provider_name'], 'logo': config.IMAGE_URL + p['logo_path']})
     trailer = api.get_trailer(mid, mtype)
     return jsonify({'providers': clean_provs, 'trailer': trailer})
 
