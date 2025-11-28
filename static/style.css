@@ -1,4 +1,4 @@
-/* static/style.css - النسخة النهائية والكاملة (The Final Polish) */
+/* static/style.css - النسخة الاحترافية (Hamburger Menu) */
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700;900&display=swap');
 
 :root {
@@ -6,72 +6,51 @@
     --glass-bg: rgba(20, 20, 40, 0.7);
     --glass-border: 1px solid rgba(138, 43, 226, 0.3);
     --dark-bg: #0f0c29;
-    --item-bg: #1a1a2e; /* لون خلفية القوائم */
     --neon-glow: 0 0 10px rgba(106, 17, 203, 0.5);
 }
 
-/* 1. إعدادات الصفحة والخلفية الثابتة */
+/* 1. إعدادات الصفحة */
 html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
+    height: 100%; margin: 0; padding: 0;
     font-family: 'Tajawal', sans-serif;
     background-color: var(--dark-bg);
     background-image: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-    background-attachment: fixed; /* تثبيت الخلفية للجوال */
-    background-size: cover;
+    background-attachment: fixed;
     color: #ffffff;
-    overflow: hidden; /* التطبيق يعمل كشاشة واحدة بدون تمرير خارجي */
-    display: flex;
-    flex-direction: column;
+    overflow: hidden;
+    display: flex; flex-direction: column;
 }
 
 /* ============================================================
-   🛑 منطقة الإخفاء (إخفاء أشرطة Streamlit المزعجة)
+   2. القائمة العلوية (Navigation Bar)
    ============================================================ */
-[data-testid="stSidebar"], [data-testid="collapsedControl"], 
-.stDeployButton, [data-testid="stToolbar"], [data-testid="stHeader"], 
-footer, header, #MainMenu, .viewerBadge_container__1QSob, 
-div[class^="viewerBadge"] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-}
-
-/* --- 2. القائمة العلوية (Navigation) --- */
 .nav-wrapper {
     background: rgba(20, 20, 40, 0.98);
-    padding: 10px 15px;
+    padding: 15px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: var(--glass-border);
     box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-    z-index: 100;
+    z-index: 1000;
+    position: relative;
 }
 
 .logo {
-    font-size: 1.4rem;
-    font-weight: 900;
+    font-size: 1.5rem; font-weight: 900;
     background: -webkit-linear-gradient(#fff, #a18cd1);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    white-space: nowrap;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 
+/* قائمة الروابط (في الكمبيوتر) */
 .nav-menu {
-    list-style: none; display: flex; gap: 8px; margin: 0; padding: 5px;
-    overflow-x: auto; /* تمرير أفقي للجوال */
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    list-style: none; display: flex; gap: 5px; margin: 0; padding: 0;
 }
-.nav-menu::-webkit-scrollbar { display: none; }
 
 .nav-menu li {
     padding: 8px 15px; border-radius: 20px; cursor: pointer;
     transition: 0.3s; color: #bbb; font-size: 0.9rem;
-    display: flex; align-items: center; gap: 5px;
-    white-space: nowrap; background: rgba(255,255,255,0.05);
+    display: flex; align-items: center; gap: 8px;
 }
 
 .nav-menu li:hover, .nav-menu li.active {
@@ -79,233 +58,142 @@ div[class^="viewerBadge"] {
     box-shadow: var(--neon-glow); font-weight: bold;
 }
 
-.lang-switch { white-space: nowrap; font-size: 0.8rem; }
-.lang-switch a { color: #aaa; text-decoration: none; margin: 0 4px; font-weight: bold; }
+/* زر الهمبرغر (مخفي في الكمبيوتر) */
+.hamburger {
+    display: none; /* مخفي افتراضياً */
+    cursor: pointer;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.bar {
+    width: 25px; height: 3px;
+    background-color: white;
+    border-radius: 5px;
+    transition: 0.3s;
+}
+
+/* تبديل اللغة */
+.lang-switch a { color: #aaa; text-decoration: none; margin: 0 5px; font-weight: bold; }
 .lang-switch a:hover { color: white; }
 
-/* --- 3. الحاوية الرئيسية --- */
+/* ============================================================
+   3. باقي التصميم (الحاويات، الشات، البطاقات)
+   ============================================================ */
 .main-container {
-    flex: 1;
-    position: relative;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
+    flex: 1; position: relative; width: 100%; height: 100%;
+    overflow: hidden; display: flex; justify-content: center;
 }
 
 .page-section {
-    display: none;
-    width: 100%;
-    max-width: 1000px;
-    height: 100%;
-    overflow-y: auto; /* التمرير هنا فقط */
-    padding: 20px;
-    box-sizing: border-box;
+    display: none; width: 100%; max-width: 1000px; height: 100%;
+    overflow-y: auto; padding: 20px; box-sizing: border-box;
     animation: fadeIn 0.4s ease;
-    scrollbar-width: thin;
-    scrollbar-color: #6a11cb transparent;
-    padding-bottom: 120px; /* مساحة كافية أسفل الصفحة لشريط الكتابة */
+    padding-bottom: 120px; scrollbar-width: thin;
 }
 .page-section.active-section { display: flex; flex-direction: column; }
 
-/* --- 4. شريط التحكم بالشخصية (التصميم الموحد الجديد) --- */
-.controls-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 8px 15px;
-    border-radius: 50px;
-    border: 1px solid rgba(138, 43, 226, 0.3);
-    width: fit-content;
-    margin: 0 auto 20px auto;
-    backdrop-filter: blur(10px);
-}
-
-/* --- القائمة المنسدلة المخصصة (Custom Dropdown) --- */
-/* هذا التصميم يضمن عدم ظهور القائمة البيضاء */
-.custom-dropdown {
-    position: relative;
-    min-width: 160px;
-    font-family: 'Tajawal';
-    z-index: 500;
-}
-
-.dropdown-selected {
-    background: transparent;
-    color: #ffffff;
-    padding: 8px 10px;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.9rem;
-    font-weight: bold;
-    border-radius: 10px;
-}
-
-.dropdown-selected:hover { color: #a18cd1; background: rgba(255,255,255,0.05); }
-.dropdown-selected i { font-size: 0.8rem; transition: 0.3s; margin-right: 5px; }
-.custom-dropdown.active .dropdown-selected i { transform: rotate(180deg); }
-
-/* القائمة المخفية */
-.dropdown-options {
-    position: absolute;
-    top: 130%; left: 0; width: 100%;
-    background: var(--item-bg); /* خلفية كحلية داكنة */
-    border: 1px solid #6a11cb;
-    border-radius: 12px;
-    overflow: hidden;
-    display: none;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-    z-index: 1000;
-}
-
-.custom-dropdown.active .dropdown-options { display: block; animation: slideUp 0.2s; }
-
-.option-item {
-    padding: 12px 15px;
-    cursor: pointer;
-    color: #ccc;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    font-size: 0.9rem;
-    background: var(--item-bg); /* تأكيد اللون الداكن */
-    transition: 0.2s;
-}
-.option-item:hover { background: var(--primary-grad); color: white; }
-.option-item:last-child { border-bottom: none; }
-
-/* زر التحديث */
-.refresh-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none; color: white;
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: 0.3s;
-}
-.refresh-btn:hover { background: #6a11cb; transform: rotate(180deg); }
-
-/* --- 5. الشات --- */
-.chat-box {
-    display: flex; flex-direction: column; gap: 15px;
-    padding: 10px;
-    flex: 1; /* يأخذ المساحة المتبقية */
-}
-
+/* الشات */
+.chat-home-layout { display: flex; flex-direction: column; height: 100%; }
+.chat-box { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding: 10px; margin-bottom: 20px; }
 .message { display: flex; gap: 10px; align-items: flex-start; animation: slideUp 0.3s; }
 .user-msg { flex-direction: row-reverse; }
-.avatar {
-    font-size: 1.4rem; background: rgba(255,255,255,0.1);
-    min-width: 40px; height: 40px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-}
-.bubble {
-    background: rgba(30, 30, 50, 0.85); /* لون داكن للفقاعة */
-    padding: 12px 18px; border-radius: 18px;
-    max-width: 80%; line-height: 1.6; color: #eee;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-.user-msg .bubble { background: var(--primary-grad); color: white; }
+.avatar { min-width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+.bubble { background: rgba(255,255,255,0.08); padding: 12px 18px; border-radius: 18px; max-width: 80%; line-height: 1.6; }
+.user-msg .bubble { background: var(--primary-grad); }
 
-/* --- 6. منطقة الإدخال (مثبتة في الأسفل) --- */
+/* المدخلات */
+.controls-wrapper {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: rgba(0,0,0,0.4); padding: 8px 15px; border-radius: 50px;
+    border: 1px solid rgba(138,43,226,0.3); width: fit-content; margin: 0 auto 15px;
+}
+.custom-dropdown { position: relative; min-width: 160px; z-index: 500; }
+.dropdown-selected { color: white; cursor: pointer; display: flex; justify-content: space-between; padding: 5px 10px; font-weight: bold; }
+.dropdown-options { position: absolute; top: 140%; left: 0; width: 100%; background: #1a1a2e; border: 1px solid #6a11cb; border-radius: 10px; overflow: hidden; display: none; }
+.custom-dropdown.active .dropdown-options { display: block; }
+.option-item { padding: 10px; cursor: pointer; transition: 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.option-item:hover { background: var(--primary-grad); }
+.refresh-btn { background: rgba(255,255,255,0.1); border: none; color: white; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
+.refresh-btn:hover { background: #6a11cb; transform: rotate(180deg); }
+
 .input-area {
-    position: fixed;
-    bottom: 0; left: 0; width: 100%;
-    background: #1a1a2e; /* خلفية صلبة داكنة (ليست شفافة) */
-    padding: 10px 15px;
-    /* التعامل مع النتوء والشريط السفلي في آيفون */
+    position: fixed; bottom: 0; left: 0; width: 100%;
+    background: #1a1a2e; padding: 10px 15px;
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
-    z-index: 1000;
-    border-radius: 20px 20px 0 0;
-    box-sizing: border-box;
-    display: flex; gap: 10px; align-items: center;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.5); z-index: 1000;
+    border-radius: 20px 20px 0 0; display: flex; gap: 10px; align-items: center; box-sizing: border-box;
 }
+input[type="text"] { flex: 1; padding: 12px 20px; border-radius: 50px; border: none; background: rgba(255,255,255,0.1); color: white; outline: none; font-size: 16px; }
+.send-btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: var(--primary-grad); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; }
 
-input[type="text"] {
-    flex: 1; padding: 12px 20px; border-radius: 50px; border: none;
-    background: rgba(255,255,255,0.1);
-    color: white; font-family: 'Tajawal'; font-size: 16px; /* 16px يمنع زوم الآيفون */
-    outline: none;
-}
-.send-btn {
-    width: 45px; height: 45px; border-radius: 50%; border: none;
-    background: var(--primary-grad); color: white; font-size: 1.2rem;
-    display: flex; align-items: center; justify-content: center; cursor: pointer;
-}
-
-/* --- 7. البطاقات والشبكة --- */
-.grid-container {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px; padding-bottom: 50px;
-}
-.movie-card {
-    background: rgba(0,0,0,0.4); border-radius: 12px; overflow: hidden;
-    transition: 0.3s; cursor: pointer; position: relative; aspect-ratio: 2/3;
-}
+/* الشبكة والبطاقات */
+.glass-container { background: var(--glass-bg); padding: 25px; border-radius: 20px; border: var(--glass-border); margin: 0 auto 30px; max-width: 600px; display: flex; flex-direction: column; gap: 15px; }
+.btn-glow { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--primary-grad); color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+.grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; padding-bottom: 50px; }
+.movie-card { background: rgba(0,0,0,0.3); border-radius: 12px; overflow: hidden; cursor: pointer; position: relative; aspect-ratio: 2/3; }
 .movie-card img { width: 100%; height: 100%; object-fit: cover; }
-.movie-card h4 {
-    position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8);
-    margin: 0; padding: 8px; font-size: 0.8rem; text-align: center;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
+.movie-card h4 { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); margin: 0; padding: 8px; font-size: 0.8rem; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* العناصر الزجاجية العامة */
-.glass-container {
-    background: var(--glass-bg); backdrop-filter: blur(10px);
-    border: var(--glass-border); border-radius: 20px;
-    padding: 25px; max-width: 600px; margin: 0 auto 30px;
-    display: flex; flex-direction: column; gap: 15px;
-}
-.btn-glow {
-    width: 100%; padding: 12px; border-radius: 12px; border: none;
-    background: var(--primary-grad); color: white; font-weight: bold;
-    cursor: pointer; transition: 0.3s;
-}
+/* Modal */
+.modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; }
+.modal-content { background: #1a1a2e; width: 95%; max-width: 700px; border-radius: 20px; overflow: hidden; position: relative; max-height: 85vh; overflow-y: auto; }
+.close-btn { position: absolute; right: 15px; top: 10px; font-size: 35px; cursor: pointer; color: white; z-index: 10; text-shadow: 0 0 5px black; }
 
-/* --- 8. النافذة المنبثقة (Modal) --- */
-.modal {
-    display: none; position: fixed; z-index: 2000;
-    left: 0; top: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.9); backdrop-filter: blur(5px);
-    justify-content: center; align-items: center;
-}
-.modal-content {
-    background: #1a1a2e; width: 95%; max-width: 600px;
-    border-radius: 20px; position: relative;
-    max-height: 85vh; overflow-y: auto;
-    box-shadow: 0 0 30px rgba(106, 17, 203, 0.5);
-}
-.close-btn {
-    position: absolute; right: 15px; top: 10px; font-size: 35px;
-    cursor: pointer; color: white; z-index: 10; text-shadow: 0 0 5px black;
-}
+/* إخفاء عناصر Streamlit */
+[data-testid="stSidebar"], .stDeployButton, [data-testid="stToolbar"], [data-testid="stHeader"], footer, header, #MainMenu, .viewerBadge_container__1QSob, div[class^="viewerBadge"] { display: none !important; }
 
-/* رفع الملفات */
-.file-upload-wrapper {
-    border: 2px dashed #6a11cb; padding: 20px; border-radius: 20px;
-    text-align: center; cursor: pointer; background: rgba(255,255,255,0.05);
-}
-
-/* --- تحسينات الجوال الإضافية --- */
+/* ============================================================
+   📱 تحسينات الجوال (Mobile) - قائمة الهمبرغر
+   ============================================================ */
 @media screen and (max-width: 768px) {
-    .nav-wrapper { padding: 8px 10px; }
-    .logo { font-size: 1.2rem; }
-    
-    .chat-box { padding-bottom: 20px; } /* مسافة إضافية داخل الصندوق */
-    .page-section { padding-bottom: 140px; } /* رفع المحتوى عن شريط الكتابة */
-    
-    .controls-wrapper { width: 100%; justify-content: space-between; margin-bottom: 10px; }
-    .custom-dropdown { flex-grow: 1; min-width: auto; }
-    
-    .grid-container {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
+    /* 1. إظهار زر الهمبرغر */
+    .hamburger { display: flex; }
+
+    /* 2. تحويل القائمة إلى قائمة منسدلة كاملة */
+    .nav-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: rgba(15, 12, 41, 0.98); /* خلفية داكنة معتمة */
+        backdrop-filter: blur(15px);
+        flex-direction: column; /* ترتيب عمودي */
+        align-items: center;
+        gap: 0;
+        max-height: 0; /* مخفية في البداية */
+        overflow: hidden;
+        transition: max-height 0.4s ease-in-out; /* تأثير الانزلاق */
+        border-bottom: 1px solid rgba(138, 43, 226, 0.3);
     }
+
+    /* كلاس التفعيل (عند الضغط على الهمبرغر) */
+    .nav-menu.active {
+        max-height: 500px; /* تفتح لتظهر المحتوى */
+        padding: 20px 0;
+    }
+
+    .nav-menu li {
+        width: 100%;
+        justify-content: center;
+        padding: 15px;
+        border-radius: 0;
+        background: transparent;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .nav-menu li:hover { background: rgba(255,255,255,0.05); }
+    .nav-menu li.active { background: var(--primary-grad); }
+
+    /* تحريك زر الهمبرغر ليصبح X */
+    .hamburger.active .bar:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+    .hamburger.active .bar:nth-child(2) { opacity: 0; }
+    .hamburger.active .bar:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+
+    /* تعديلات الشبكة والشات للجوال */
+    .grid-container { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .controls-wrapper { width: 100%; justify-content: space-between; }
+    .chat-box { padding-bottom: 80px; }
 }
 
 @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
