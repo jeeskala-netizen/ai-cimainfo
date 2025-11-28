@@ -1,7 +1,5 @@
-streamlit
+flask
 requests
 groq
-st-clickable-images
-flask
 gunicorn
 python-dotenv
