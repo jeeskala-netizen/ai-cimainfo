@@ -270,4 +270,119 @@ input:focus { background: rgba(255,255,255,0.15); }
 
 @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
 @keyframes slideUp { from {transform:translateY(20px); opacity:0;} to {transform:translateY(0); opacity:1;} }
+
 @keyframes slideDown { from {transform:translateY(-50px); opacity:0;} to {transform:translateY(0); opacity:1;} }
+
+/* ============================================================
+   📱 تحسينات وضع الجوال (Mobile Responsive Fixes)
+   هذا الكود يعمل فقط عندما تكون الشاشة أصغر من 768px
+   ============================================================ */
+
+@media screen and (max-width: 768px) {
+
+    /* 1. إصلاح الهيكل العام */
+    body, html {
+        overflow-x: hidden; /* منع التمرير الأفقي نهائياً */
+        width: 100%;
+        position: fixed; /* تثبيت الخلفية لمنع الاهتزاز */
+    }
+
+    .main-container {
+        padding: 10px;
+        width: 100vw; /* عرض الشاشة بالكامل */
+        box-sizing: border-box;
+    }
+
+    /* 2. تحويل القائمة العلوية إلى قائمة منزلقة أفقياً (Scrollable) */
+    .nav-wrapper {
+        padding: 10px;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .nav-menu {
+        width: 100%;
+        overflow-x: auto; /* السماح بالتمرير الأفقي للأيقونات */
+        justify-content: flex-start; /* البدء من اليمين */
+        padding-bottom: 5px;
+        -webkit-overflow-scrolling: touch; /* تمرير ناعم في آيفون */
+        white-space: nowrap; /* منع نزول الأيقونات لسطر ثاني */
+    }
+    
+    /* إخفاء شريط التمرير للقائمة لجمالية أكثر */
+    .nav-menu::-webkit-scrollbar {
+        display: none;
+    }
+
+    .nav-menu li {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        flex-shrink: 0; /* منع تقلص الأزرار */
+    }
+
+    /* 3. إصلاح شريط التحكم بالشخصية (ليتناسب مع العرض) */
+    .controls-wrapper {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        justify-content: space-between;
+        padding: 8px 15px;
+        margin-bottom: 15px;
+    }
+
+    .custom-dropdown {
+        min-width: auto; /* السماح للقائمة بالصغر */
+        flex: 1; /* تأخذ المساحة المتاحة */
+    }
+
+    .dropdown-selected {
+        font-size: 0.85rem;
+        padding: 5px 10px;
+    }
+
+    /* 4. إصلاح منطقة الكتابة السفلية */
+    .input-area {
+        position: fixed; /* تثبيت في الأسفل */
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        width: auto;
+        margin: 0;
+        z-index: 1000;
+        backdrop-filter: blur(15px); /* زجاجي قوي */
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* رفع صندوق الشات قليلاً لكي لا يغطيه شريط الكتابة */
+    .chat-box {
+        padding-bottom: 80px; 
+    }
+
+    /* 5. تصغير الفقاعات والنصوص */
+    .bubble {
+        font-size: 0.95rem;
+        padding: 10px 15px;
+        max-width: 85%;
+    }
+
+    /* 6. شبكة الأفلام (في الجوال عمودين فقط) */
+    .grid-container {
+        grid-template-columns: repeat(2, 1fr); /* عمودين للجوال */
+        gap: 10px;
+    }
+    
+    .universal-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .movie-card img {
+        height: 180px; /* تقليل ارتفاع الصور */
+    }
+
+    /* 7. النافذة المنبثقة (Modal) تملأ الشاشة */
+    .modal-content {
+        width: 95%;
+        margin: 10% auto;
+        max-height: 80vh;
+    }
+}
