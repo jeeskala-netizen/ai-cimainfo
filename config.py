@@ -27,6 +27,5 @@ if not TMDB_API_KEY:
     print("⚠️ CRITICAL: TMDB_API_KEY is missing!")
 if not GEMINI_API_KEY:
     print("⚠️ WARNING: GEMINI_API_KEY is missing. AI features will be disabled or fallback will be used.")
-# GROQ اختياري الآن
 if not GROQ_API_KEY:
     print("ℹ️ GROQ_API_KEY not found (optional).")
