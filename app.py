@@ -1,17 +1,21 @@
-# app.py - Flask server (مُحدّث لدعم Gemini fallback وإشعارات مفيدة)
+# app.py - Flask server (corrected)
 from flask import Flask, render_template, request, jsonify
-import api, languages, config, re, os
+import api
+import languages
+import config
+import re
+import os
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or os.urandom(24)
 
-current_lang = config.DEFAULT_LANGUAGE.split("-")[0] if hasattr(config, "DEFAULT_LANGUAGE") else "ar"
+current_lang = getattr(config, "DEFAULT_LANGUAGE", "ar-SA").split("-")[0]
 
-# تحذير واضح عند بدء التشغيل إن لم يكن مفتاح Gemini موجوداً
 if not getattr(config, "GEMINI_API_KEY", None):
-    print("⚠️ GEMINI_API_KEY not configured. AI endpoints will return a friendly error message.")
+    print("A GEMINI_API_KEY not configured. AI endpoints may return a friendly error or fallback.")
 
 MOVIE_BRACKET_RE = re.compile(r"\[(.*?)\]")
+
 
 def extract_movies_from_text(text):
     matches = MOVIE_BRACKET_RE.findall(text or "")
@@ -33,10 +37,12 @@ def extract_movies_from_text(text):
                 })
     return movies_data
 
+
 @app.route('/')
 def home():
     t = languages.get_text(current_lang)
     return render_template('index.html', t=t, lang=current_lang)
+
 
 @app.route('/change_lang/<lang>')
 def change_lang(lang):
@@ -45,18 +51,20 @@ def change_lang(lang):
         current_lang = lang
     return home()
 
+
 @app.route('/chat', methods=['POST'])
 def chat():
-    msg = request.form.get('msg', '').strip()
+    msg = request.form.get('msg', "").strip()
     if not msg:
         return jsonify({'response': 'Please send a message.', 'movies': []})
     persona = request.form.get('persona', 'Friendly')
     response_text = api.chat_with_ai_formatted([{"role": "user", "content": msg}], persona, current_lang)
     return jsonify({'response': response_text, 'movies': extract_movies_from_text(response_text)})
 
+
 @app.route('/search', methods=['POST'])
 def search():
-    query = request.form.get('query', '').strip()
+    query = request.form.get('query', "").strip()
     ctype = request.form.get('type')
     if not query:
         return jsonify({'movies': []})
@@ -72,6 +80,7 @@ def search():
                 "overview": item.get('overview', "")
             })
     return jsonify({'movies': movies})
+
 
 @app.route('/browse_content', methods=['POST'])
 def browse_content():
@@ -90,6 +99,7 @@ def browse_content():
             })
     return jsonify({'movies': movies})
 
+
 @app.route('/analyze_image', methods=['POST'])
 def analyze_image():
     if 'image' not in request.files:
@@ -102,21 +112,26 @@ def analyze_image():
     ai_text = api.analyze_image_search(file, current_lang)
     return jsonify({'response': ai_text, 'movies': extract_movies_from_text(ai_text)})
 
+
 @app.route('/analyze_dna', methods=['POST'])
 def analyze_dna():
-    movies = [request.form.get('m1', ''), request.form.get('m2', ''), request.form.get('m3', '')]
+    movies = [request.form.get('m1', ""), request.form.get('m2', ""), request.form.get('m3', "")]
     ai_text = api.analyze_dna(movies, current_lang)
     return jsonify({'response': ai_text, 'movies': extract_movies_from_text(ai_text)})
 
+
 @app.route('/matchmaker', methods=['POST'])
 def matchmaker():
-    u1 = request.form.get('u1', ''); u2 = request.form.get('u2', '')
+    u1 = request.form.get('u1', "")
+    u2 = request.form.get('u2', "")
     ai_text = api.find_match(u1, u2, current_lang)
     return jsonify({'response': ai_text, 'movies': extract_movies_from_text(ai_text)})
 
+
 @app.route('/get_details', methods=['POST'])
 def get_details():
-    mid = request.form.get('id'); mtype = request.form.get('type', 'movie')
+    mid = request.form.get('id')
+    mtype = request.form.get('type', 'movie')
     providers = api.get_watch_providers(mid, mtype)
     clean_provs = []
     if providers:
@@ -125,6 +140,7 @@ def get_details():
                 clean_provs.append({'name': p.get('provider_name'), 'logo': api.IMAGE_URL + p['logo_path']})
     trailer = api.get_trailer(mid, mtype)
     return jsonify({'providers': clean_provs, 'trailer': trailer})
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
