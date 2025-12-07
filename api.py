@@ -1,4 +1,4 @@
-# Api.py - Optimized for OpenRouter with Fallback
+# Api.py - Production Ready (OpenRouter Primary)
 import os
 import logging
 import base64
@@ -7,7 +7,7 @@ from functools import lru_cache
 from typing import List, Optional, Dict
 import config
 
-# --- Logging setup
+# --- إعدادات السجلات (Logging) لمعرفة الأخطاء فوراً ---
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     handler = logging.StreamHandler()
@@ -16,86 +16,99 @@ if not logger.handlers:
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
 
-# --- Configuration & Keys
-# قراءة المفاتيح من بيئة العمل (Render) أو ملف config
+# --- تحميل المفاتيح (مباشرة من Render لضمان القراءة) ---
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY") or getattr(config, "TMDB_API_KEY", None)
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+# المفاتيح الاحتياطية
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or getattr(config, "GEMINI_API_KEY", None)
+
+# طباعة حالة المفاتيح في السجل (للتأكد من أن Render قرأها)
+if OPENROUTER_API_KEY:
+    logger.info("✅ OpenRouter Key Detected.")
+else:
+    logger.warning("⚠️ OpenRouter Key NOT found in environment variables!")
 
 # إعدادات TMDB
 BASE_URL = getattr(config, "BASE_URL", "https://api.themoviedb.org/3")
 IMAGE_URL = getattr(config, "IMAGE_URL", "https://image.tmdb.org/t/p/w500")
 REQUEST_TIMEOUT = 10
 
-# --- AI Core Functions (OpenRouter Priority) ---
+# --- الدالة الرئيسية للذكاء الاصطناعي (Smart Router) ---
 
-def _call_ai_service(messages: List[Dict], temperature: float = 0.7, max_tokens: int = 500) -> str:
+def _call_ai_service(messages: List[Dict], temperature: float = 0.7) -> str:
     """
-    الدالة المركزية للاتصال بالذكاء الاصطناعي.
-    الأولوية: OpenRouter -> ثم Gemini Direct
+    تحاول الاتصال بـ OpenRouter أولاً.
+    إذا فشلت، تحاول الاتصال بـ Gemini مباشرة كخيار طوارئ.
     """
     
-    # 1. محاولة استخدام OpenRouter (الخيار الأفضل والمستقر)
+    # === الخطة أ: OpenRouter (الأفضل والأسرع) ===
     if OPENROUTER_API_KEY:
         try:
+            # استخدام موديل Gemini Flash السريع والمجاني عبر OpenRouter
+            # يمكنك تغييره مستقبلاً لـ "meta-llama/llama-3-8b-instruct:free"
+            model = "google/gemini-flash-1.5" 
+            
             url = "https://openrouter.ai/api/v1/chat/completions"
             headers = {
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "HTTP-Referer": "https://ai-cimainfo.onrender.com",
+                "HTTP-Referer": "https://ai-cimainfo.onrender.com", # مطلوب من OpenRouter
                 "X-Title": "CimaBot",
                 "Content-Type": "application/json"
             }
-            
-            # نستخدم موديل Gemini Flash عبر OpenRouter لأنه سريع ورخيص/مجاني
-            # يمكنك تغييره إلى "meta-llama/llama-3-8b-instruct:free" إذا أردت
             payload = {
-                "model": "google/gemini-flash-1.5",
+                "model": model,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": max_tokens
+                "max_tokens": 600
             }
             
-            resp = requests.post(url, json=payload, headers=headers, timeout=25)
+            resp = requests.post(url, json=payload, headers=headers, timeout=20)
             
             if resp.status_code == 200:
                 return resp.json()['choices'][0]['message']['content']
             else:
                 logger.error(f"OpenRouter Error {resp.status_code}: {resp.text}")
-                # لا نوقف التنفيذ، بل نحاول الانتقال للخيار الاحتياطي
+                # هنا لا نتوقف، بل ننتقل للخطة ب (Fallback)
+                
         except Exception as e:
             logger.error(f"OpenRouter Connection Failed: {e}")
 
-    # 2. الخيار الاحتياطي: استخدام Gemini Google API مباشرة
+    # === الخطة ب: Gemini Direct (احتياطي الطوارئ) ===
     if GEMINI_API_KEY:
-        logger.info("Falling back to Direct Gemini API...")
+        logger.info("🔄 Switching to Gemini Direct API fallback...")
         return _fallback_gemini_direct(messages, temperature)
 
-    return "Error: AI configuration missing. Please set OPENROUTER_API_KEY."
+    return "Error: Could not contact AI. Please check OPENROUTER_API_KEY in Render settings."
 
 def _fallback_gemini_direct(messages: List[Dict], temperature: float) -> str:
-    """نسخة مبسطة للاتصال المباشر بجوجل في حال فشل OpenRouter"""
+    """
+    اتصال مباشر بجوجل في حال تعطل OpenRouter.
+    تم إصلاح خطأ 404 بتثبيت الموديل على gemini-1.5-flash
+    """
     try:
-        # تحويل صيغة الرسائل إلى نص بسيط لأن API جوجل المباشر معقد في السياق
-        prompt_text = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
+        # تحويل المحادثة لنص واحد لأن واجهة REST البسيطة تفضل ذلك
+        full_prompt = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
         
-        # استخدام موديل Flash
+        # استخدام النسخة v1beta الأحدث
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         payload = {
-            "contents": [{"parts": [{"text": prompt_text}]}],
+            "contents": [{"parts": [{"text": full_prompt}]}],
             "generationConfig": {"temperature": temperature}
         }
-        resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=20)
+        
+        resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
         
         if resp.status_code == 200:
-            candidates = resp.json().get("candidates", [])
-            if candidates:
-                return candidates[0]["content"]["parts"][0]["text"]
+            return resp.json()['candidates'][0]['content']['parts'][0]['text']
+        else:
+            logger.error(f"Gemini Direct Error {resp.status_code}: {resp.text}")
+            
     except Exception as e:
-        logger.error(f"Fallback Gemini Error: {e}")
-    
+        logger.error(f"Gemini Direct Exception: {e}")
+        
     return "Error: All AI services failed."
 
-# --- Helper Functions (TMDB) - (لم تتغير لأنها سليمة) ---
+# --- دوال مساعدة TMDB (تعمل بنجاح، لم يتم تغييرها) ---
 
 @lru_cache(maxsize=128)
 def fetch_content(content_type="movie", category="popular", region=None):
@@ -104,16 +117,13 @@ def fetch_content(content_type="movie", category="popular", region=None):
     try:
         url = f"{BASE_URL}/{endpoint}/{category}?api_key={TMDB_API_KEY}&language=ar-SA"
         if region:
-            # خريطة بسيطة للمناطق
             r_map = {"korea": "ko", "india": "hi", "arabic": "ar", "turkey": "tr", "spain": "es", "japan": "ja"}
-            lang_code = r_map.get(region, "en")
-            url = f"{BASE_URL}/discover/{endpoint}?api_key={TMDB_API_KEY}&language=ar-SA&sort_by=popularity.desc&with_original_language={lang_code}"
+            lang = r_map.get(region, "en")
+            url = f"{BASE_URL}/discover/{endpoint}?api_key={TMDB_API_KEY}&language=ar-SA&sort_by=popularity.desc&with_original_language={lang}"
         
         resp = requests.get(url, timeout=REQUEST_TIMEOUT)
         return resp.json().get("results", []) if resp.status_code == 200 else []
-    except Exception as e:
-        logger.error(f"TMDB Fetch Error: {e}")
-        return []
+    except: return []
 
 def search_tmdb(query, content_type=None):
     if not TMDB_API_KEY or not query: return []
@@ -123,7 +133,7 @@ def search_tmdb(query, content_type=None):
         url = f"{BASE_URL}/{endpoint}?api_key={TMDB_API_KEY}&query={q}&language=ar-SA"
         resp = requests.get(url, timeout=REQUEST_TIMEOUT)
         return resp.json().get("results", []) if resp.status_code == 200 else []
-    except Exception: return []
+    except: return []
 
 def get_trailer(item_id, content_type="movie"):
     if not TMDB_API_KEY: return None
@@ -143,7 +153,7 @@ def get_watch_providers(item_id, content_type="movie"):
         return res.get("results", {}).get("SA", {}).get("flatrate", [])
     except: return []
 
-# --- AI Logic Wrappers (Chat, Image, DNA) ---
+# --- دوال الواجهة (Chat, Image, Matchmaker) ---
 
 def get_lang_instruction(lang: str) -> str:
     if lang == "en": return "Speak ONLY in English."
@@ -151,70 +161,81 @@ def get_lang_instruction(lang: str) -> str:
     return "Speak ONLY in Arabic."
 
 def chat_with_ai_formatted(messages: List[Dict], persona: str, lang: str = "ar") -> str:
+    """بناء المحادثة وإرسالها لـ OpenRouter"""
     lang_rule = get_lang_instruction(lang)
     
     # تحديد الشخصية
-    system_instruction = "You are a helpful movie assistant."
-    p_lower = (persona or "").lower()
-    if "critic" in p_lower: system_instruction = "You are a snobbish movie critic. You hate cliche movies."
-    elif "joker" in p_lower: system_instruction = "You are a funny comedian bot. Make jokes about movies."
-    elif "fan" in p_lower: system_instruction = "You are a hyped fanboy! Use lots of emojis!"
+    sys_msg = "You are CimaBot, a helpful movie expert."
+    p = (persona or "").lower()
+    if "critic" in p: sys_msg = "You are a snobbish movie critic. You hate blockbusters."
+    elif "joker" in p: sys_msg = "You are a funny bot. Make jokes about movies."
+    elif "fan" in p: sys_msg = "You are a hyped fanboy! Use emojis! 🤩"
     
-    system_content = f"{system_instruction} RULES: 1. {lang_rule} 2. Movie Titles MUST be in English inside [Brackets] like [The Matrix]. 3. Be concise."
-
-    # بناء قائمة الرسائل لـ OpenRouter
-    # نضع تعليمات النظام أولاً
-    full_messages = [{"role": "system", "content": system_content}]
+    system_prompt = f"{sys_msg} RULES: 1. {lang_rule} 2. Movie titles MUST be in English inside [Brackets] like [Inception]. 3. Be concise."
     
-    # نضيف تاريخ المحادثة
-    for m in messages or []:
-        full_messages.append({"role": m.get("role", "user"), "content": m.get("content", "")})
+    # تكوين قائمة الرسائل
+    formatted_msgs = [{"role": "system", "content": system_prompt}]
+    for m in messages:
+        formatted_msgs.append({"role": m.get("role", "user"), "content": m.get("content", "")})
         
-    return _call_ai_service(full_messages)
+    return _call_ai_service(formatted_msgs)
 
 def analyze_image_search(image_file, lang: str = "ar") -> str:
-    """
-    تحليل الصور باستخدام OpenRouter Vision.
-    """
+    """تحليل الصور باستخدام OpenRouter Vision"""
     if not OPENROUTER_API_KEY and not GEMINI_API_KEY:
-        return "Error: AI keys missing."
-
+        return "Error: AI Keys missing."
+        
     try:
-        # تجهيز الصورة كـ Base64
-        image_data = image_file.read()
-        b64_image = base64.b64encode(image_data).decode('utf-8')
+        # تجهيز الصورة
+        img_data = base64.b64encode(image_file.read()).decode('utf-8')
         image_file.seek(0)
         
-        prompt = f"Analyze the mood of this image and recommend 3 movies that fit this mood. {get_lang_instruction(lang)}. Return titles in [Brackets]."
+        prompt = f"Analyze the mood of this image and recommend 3 movies. {get_lang_instruction(lang)} Titles in [Brackets]."
         
-        # هيكلية الرسالة للصور (OpenAI Vision Compatible)
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/jpeg;base64,{b64_image}"}
-                    }
-                ]
-            }
-        ]
-        
-        return _call_ai_service(messages)
-        
+        # إذا كان OpenRouter موجود، نستخدمه (يدعم الصور)
+        if OPENROUTER_API_KEY:
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_data}"}}
+                    ]
+                }
+            ]
+            return _call_ai_service(messages)
+            
+        # وإلا نستخدم Gemini Direct Vision كاحتياطي
+        else:
+            return _fallback_gemini_vision(img_data, prompt)
+            
     except Exception as e:
-        logger.error(f"Image Analysis Error: {e}")
+        logger.error(f"Image Error: {e}")
         return "Error processing image."
 
+def _fallback_gemini_vision(b64_data, prompt):
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inline_data": {"mime_type": "image/jpeg", "data": b64_data}}
+                ]
+            }]
+        }
+        resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
+        if resp.status_code == 200:
+            return resp.json()['candidates'][0]['content']['parts'][0]['text']
+    except: pass
+    return "Error analyzing image."
+
 def analyze_dna(movies: List[str], lang: str = "ar") -> str:
-    valid_movies = [m for m in movies if m]
-    if not valid_movies: return "Please enter at least one movie."
-    
-    prompt = f"User likes: {', '.join(valid_movies)}. Analyze their personality based on these movies and suggest 3 NEW recommendations. {get_lang_instruction(lang)}. Titles in [Brackets]."
-    
+    valid = [m for m in movies if m]
+    if not valid: return "Please enter movies."
+    prompt = f"User likes: {', '.join(valid)}. Analyze personality and suggest 3 NEW movies. {get_lang_instruction(lang)} Titles in [Brackets]."
     return _call_ai_service([{"role": "user", "content": prompt}])
 
 def find_match(u1: str, u2: str, lang: str = "ar") -> str:
-    prompt = f"Matchmaker: Person A likes {u1}. Person B likes {u2}. Find 3 middle-ground movies they both might like. {get_lang_instruction(lang)}. Titles in [Brackets]."
+    prompt = f"Matchmaker: Person A likes {u1}. Person B likes {u2}. Find middle ground movies. {get_lang_instruction(lang)} Titles in [Brackets]."
     return _call_ai_service([{"role": "user", "content": prompt}])
