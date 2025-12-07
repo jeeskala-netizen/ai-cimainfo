@@ -5,7 +5,7 @@ import base64
 import requests
 from functools import lru_cache
 from typing import List, Optional, Dict
-import config  # Ensure config has GEMINI_API_KEY, GEMINI_MODEL, etc.
+import config  # نبقي عليه كخيار احتياطي
 
 # --- Logging setup
 logger = logging.getLogger(__name__)
@@ -16,16 +16,29 @@ if not logger.handlers:
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
 
-# --- TMDB settings
-TMDB_API_KEY = getattr(config, "TMDB_API_KEY", None)
+# ==========================================
+# منطقة تحميل المفاتيح (تم التعديل للقراءة المباشرة)
+# ==========================================
+
+# 1. محاولة قراءة المفاتيح مباشرة من بيئة السيرفر (Render) أولاً
+# إذا لم نجدها، نحاول قراءتها من ملف config
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY") or getattr(config, "TMDB_API_KEY", None)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or getattr(config, "GEMINI_API_KEY", None)
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL") or getattr(config, "GEMINI_MODEL", "gemini-1.5-flash")
+
 BASE_URL = getattr(config, "BASE_URL", "https://api.themoviedb.org/3")
 IMAGE_URL = getattr(config, "IMAGE_URL", "https://image.tmdb.org/t/p/w500")
 REQUEST_TIMEOUT = getattr(config, "REQUEST_TIMEOUT", 10)
 
-# --- Gemini settings
-GEMINI_API_KEY = getattr(config, "GEMINI_API_KEY", None)
-# Default to a model known to work with generateContent (v1beta)
-GEMINI_MODEL = getattr(config, "GEMINI_MODEL", "gemini-1.5-flash")
+# طباعة رسالة تشخيصية في الـ Logs عند بدء التشغيل
+if GEMINI_API_KEY:
+    # نطبع أول 4 حروف فقط للأمان للتأكد من أنه قرأ المفتاح
+    masked_key = GEMINI_API_KEY[:4] + "..."
+    logger.info(f"✅ GEMINI_API_KEY Found: {masked_key} | Model: {GEMINI_MODEL}")
+else:
+    logger.error("❌ CRITICAL: GEMINI_API_KEY is Missing or Empty!")
+
+# ==========================================
 
 # --- Helpers for Gemini endpoint normalization and call
 
@@ -45,13 +58,17 @@ def _call_gemini(prompt_text: str, temperature: float = 0.7, max_tokens: int = 5
     Call Gemini REST generateContent endpoint.
     Updated to use the correct v1beta/v1 API structure (contents -> parts).
     """
-    if not GEMINI_API_KEY:
+    # التحقق مرة أخرى داخل الدالة
+    current_key = os.environ.get("GEMINI_API_KEY") or GEMINI_API_KEY
+    
+    if not current_key:
+        logger.error("Attempted to call Gemini but API Key is None")
         return "Error: Gemini API key not configured."
     
     normalized_model = _normalize_gemini_model(GEMINI_MODEL)
     
     # Correct Endpoint for Gemini
-    url = f"https://generativelanguage.googleapis.com/v1beta/{normalized_model}:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/{normalized_model}:generateContent?key={current_key}"
     
     # Correct Payload Structure for Gemini
     payload = {
@@ -75,8 +92,6 @@ def _call_gemini(prompt_text: str, temperature: float = 0.7, max_tokens: int = 5
             
         data = resp.json()
         
-        # Extract text from Gemini response structure
-        # Structure: candidates[0].content.parts[0].text
         candidates = data.get("candidates")
         if candidates and isinstance(candidates, list):
             candidate = candidates[0]
@@ -111,10 +126,8 @@ def fetch_content(content_type: str = "movie", category: str = "popular", region
     endpoint = "movie" if content_type == "movie" else "tv"
     try:
         if region and region in REGION_MAP:
-            # Discover with region filter
             url = f"{BASE_URL}/discover/{endpoint}?api_key={TMDB_API_KEY}&language=ar-SA&sort_by=popularity.desc{REGION_MAP[region]}"
         else:
-            # Standard category (popular, top_rated, etc.)
             url = f"{BASE_URL}/{endpoint}/{category}?api_key={TMDB_API_KEY}&language=ar-SA"
             
         resp = requests.get(url, timeout=REQUEST_TIMEOUT)
@@ -204,7 +217,8 @@ def chat_with_ai_formatted(messages: List[Dict], persona: str, lang: str = "ar")
     """
     Build a single prompt text from messages and persona, then call Gemini.
     """
-    if not GEMINI_API_KEY:
+    current_key = os.environ.get("GEMINI_API_KEY") or GEMINI_API_KEY
+    if not current_key:
         return "Error: Gemini API key not configured."
     
     lang_rule = get_lang_instruction(lang)
@@ -230,7 +244,8 @@ def analyze_image_search(image_file, lang: str = "ar") -> str:
     """
     Encode image as base64 and include in prompt using Gemini Vision (multimodal).
     """
-    if not GEMINI_API_KEY:
+    current_key = os.environ.get("GEMINI_API_KEY") or GEMINI_API_KEY
+    if not current_key:
         return "Error: Gemini API key not configured."
     
     try:
@@ -247,9 +262,8 @@ def analyze_image_search(image_file, lang: str = "ar") -> str:
         "Return titles inside [Brackets]. Provide a short explanation and 3 recommendations."
     )
     
-    # Vision Call Construction
     normalized_model = _normalize_gemini_model(GEMINI_MODEL)
-    url = f"https://generativelanguage.googleapis.com/v1beta/{normalized_model}:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/{normalized_model}:generateContent?key={current_key}"
     
     payload = {
         "contents": [{
@@ -257,7 +271,7 @@ def analyze_image_search(image_file, lang: str = "ar") -> str:
                 {"text": user_prompt},
                 {
                     "inline_data": {
-                        "mime_type": "image/jpeg",  # Assumes JPEG/PNG, Gemini handles common types
+                        "mime_type": "image/jpeg",
                         "data": b64
                     }
                 }
@@ -290,10 +304,10 @@ def analyze_image_search(image_file, lang: str = "ar") -> str:
         return f"Error: {e}"
 
 def analyze_dna(movies: List[str], lang: str = "ar") -> str:
-    if not GEMINI_API_KEY:
+    current_key = os.environ.get("GEMINI_API_KEY") or GEMINI_API_KEY
+    if not current_key:
         return "Error: Gemini API key not configured."
     
-    # Filter empty inputs
     valid_movies = [m for m in movies if m]
     if not valid_movies:
         return "Please enter at least one movie."
@@ -306,7 +320,8 @@ def analyze_dna(movies: List[str], lang: str = "ar") -> str:
     return _call_gemini(prompt, temperature=0.7, max_tokens=400)
 
 def find_match(u1: str, u2: str, lang: str = "ar") -> str:
-    if not GEMINI_API_KEY:
+    current_key = os.environ.get("GEMINI_API_KEY") or GEMINI_API_KEY
+    if not current_key:
         return "Error: Gemini API key not configured."
         
     lang_rule = get_lang_instruction(lang)
