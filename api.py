@@ -5,10 +5,9 @@ import base64
 import requests
 from functools import lru_cache
 from typing import List, Optional, Dict
+import config  # Ensure config has GEMINI_API_KEY, GEMINI_MODEL, etc.
 
-import config  # تأكد أن config يحتوي على GEMINI_API_KEY و GEMINI_MODEL و REQUEST_TIMEOUT
-
-# --- Logging setup ---
+# --- Logging setup
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     handler = logging.StreamHandler()
@@ -17,24 +16,25 @@ if not logger.handlers:
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
 
-# --- TMDB settings ---
+# --- TMDB settings
 TMDB_API_KEY = getattr(config, "TMDB_API_KEY", None)
 BASE_URL = getattr(config, "BASE_URL", "https://api.themoviedb.org/3")
 IMAGE_URL = getattr(config, "IMAGE_URL", "https://image.tmdb.org/t/p/w500")
 REQUEST_TIMEOUT = getattr(config, "REQUEST_TIMEOUT", 10)
 
-# --- Gemini settings ---
+# --- Gemini settings
 GEMINI_API_KEY = getattr(config, "GEMINI_API_KEY", None)
-GEMINI_MODEL = getattr(config, "GEMINI_MODEL", "gemini-1.0")  # يمكن أن يكون "gemini-1.5" أو "models/gemini-1.5"
+# Default to a model known to work with generateContent (v1beta)
+GEMINI_MODEL = getattr(config, "GEMINI_MODEL", "gemini-1.5-flash")
 
-# --- Helpers for Gemini endpoint normalization and call ---
+# --- Helpers for Gemini endpoint normalization and call
+
 def _normalize_gemini_model(model: str) -> str:
     """
     Normalize model identifier so the final path contains exactly one 'models/' prefix.
-    Accepts either 'gemini-1.5' or 'models/gemini-1.5' and returns 'models/gemini-1.5'.
     """
     if not model:
-        return ""
+        return "models/gemini-1.5-flash"
     model = model.strip().strip("/")
     if model.startswith("models/"):
         return model
@@ -42,56 +42,57 @@ def _normalize_gemini_model(model: str) -> str:
 
 def _call_gemini(prompt_text: str, temperature: float = 0.7, max_tokens: int = 500) -> str:
     """
-    Call Gemini REST generate endpoint. Normalizes model string to avoid double 'models/models'.
-    Returns text or an error string starting with 'Error:'.
+    Call Gemini REST generateContent endpoint.
+    Updated to use the correct v1beta/v1 API structure (contents -> parts).
     """
     if not GEMINI_API_KEY:
         return "Error: Gemini API key not configured."
-    if not GEMINI_MODEL:
-        return "Error: Gemini model not configured."
-
+    
     normalized_model = _normalize_gemini_model(GEMINI_MODEL)
-    url = f"https://generativelanguage.googleapis.com/v1beta2/{normalized_model}:generate?key={GEMINI_API_KEY}"
-
+    
+    # Correct Endpoint for Gemini
+    url = f"https://generativelanguage.googleapis.com/v1beta/{normalized_model}:generateContent?key={GEMINI_API_KEY}"
+    
+    # Correct Payload Structure for Gemini
     payload = {
-        "prompt": {"text": prompt_text},
-        "temperature": temperature,
-        "maxOutputTokens": max_tokens
+        "contents": [{
+            "parts": [{"text": prompt_text}]
+        }],
+        "generationConfig": {
+            "temperature": temperature,
+            "maxOutputTokens": max_tokens
+        }
     }
+    
     headers = {"Content-Type": "application/json"}
-
+    
     try:
         resp = requests.post(url, json=payload, headers=headers, timeout=30)
-        logger.info("Gemini request to %s returned status %s", url, resp.status_code)
-        resp.raise_for_status()
+        
+        if resp.status_code != 200:
+            logger.error(f"Gemini API Error {resp.status_code}: {resp.text}")
+            return f"Error: Gemini API returned status {resp.status_code}"
+            
         data = resp.json()
-        logger.debug("Gemini raw response: %s", data)
-
-        # استخراج النص من أشكال الاستجابة الشائعة
-        if isinstance(data, dict):
-            candidates = data.get("candidates")
-            if isinstance(candidates, list) and len(candidates) > 0:
-                cand = candidates[0]
-                if isinstance(cand, dict):
-                    return cand.get("output", {}).get("content") or cand.get("content") or cand.get("text") or ""
-            out = data.get("output")
-            if isinstance(out, dict):
-                text = out.get("text")
-                if text:
-                    return text
-            return data.get("text") or data.get("content") or ""
+        
+        # Extract text from Gemini response structure
+        # Structure: candidates[0].content.parts[0].text
+        candidates = data.get("candidates")
+        if candidates and isinstance(candidates, list):
+            candidate = candidates[0]
+            content = candidate.get("content", {})
+            parts = content.get("parts", [])
+            if parts:
+                return parts[0].get("text", "")
+        
         return ""
-    except requests.HTTPError as http_err:
-        try:
-            logger.error("Gemini HTTP error: %s - response: %s", http_err, resp.text)
-        except Exception:
-            logger.error("Gemini HTTP error: %s", http_err)
-        return f"Error: {http_err}"
+
     except Exception as e:
         logger.exception("Gemini call failed")
-        return f"Error: {e}"
+        return f"Error: {str(e)}"
 
-# --- TMDB helpers ---
+# --- TMDB helpers
+
 REGION_MAP = {
     "korea": "&with_original_language=ko",
     "india": "&with_original_language=hi",
@@ -106,12 +107,16 @@ def fetch_content(content_type: str = "movie", category: str = "popular", region
     """Fetch popular/discover movies or tv shows from TMDB."""
     if not TMDB_API_KEY:
         return []
+    
     endpoint = "movie" if content_type == "movie" else "tv"
     try:
         if region and region in REGION_MAP:
+            # Discover with region filter
             url = f"{BASE_URL}/discover/{endpoint}?api_key={TMDB_API_KEY}&language=ar-SA&sort_by=popularity.desc{REGION_MAP[region]}"
         else:
+            # Standard category (popular, top_rated, etc.)
             url = f"{BASE_URL}/{endpoint}/{category}?api_key={TMDB_API_KEY}&language=ar-SA"
+            
         resp = requests.get(url, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         return resp.json().get("results", [])
@@ -123,12 +128,14 @@ def search_tmdb(query: str, content_type: Optional[str] = None) -> List[Dict]:
     """Search TMDB multi or specific type."""
     if not TMDB_API_KEY or not query:
         return []
+    
     try:
         q = requests.utils.quote(query)
         if content_type in ("movie", "tv"):
             url = f"{BASE_URL}/search/{content_type}?api_key={TMDB_API_KEY}&query={q}&language=ar-SA"
         else:
             url = f"{BASE_URL}/search/multi?api_key={TMDB_API_KEY}&query={q}&language=ar-SA"
+            
         resp = requests.get(url, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         return resp.json().get("results", [])
@@ -167,7 +174,8 @@ def get_watch_providers(item_id: int, content_type: str = "movie") -> List[Dict]
         logger.debug("get_watch_providers error: %s", e)
     return []
 
-# --- AI functions using Gemini ---
+# --- AI functions using Gemini
+
 def get_lang_instruction(lang: str) -> str:
     if lang == "en":
         return "Speak ONLY in English."
@@ -195,56 +203,115 @@ def _resolve_persona_key(persona: str) -> str:
 def chat_with_ai_formatted(messages: List[Dict], persona: str, lang: str = "ar") -> str:
     """
     Build a single prompt text from messages and persona, then call Gemini.
-    Messages expected as list of {"role": "user"|"system"|"assistant", "content": "..."}
     """
     if not GEMINI_API_KEY:
-        return "Error: Gemini API key or model not configured."
+        return "Error: Gemini API key not configured."
+    
     lang_rule = get_lang_instruction(lang)
     p_key = _resolve_persona_key(persona)
+    
     sys_prompt = (
-        f"{PERSONAS_MAP[p_key]} RULES: 1. {lang_rule} "
+        f"{PERSONAS_MAP.get(p_key, PERSONAS_MAP['Friendly'])} RULES: 1. {lang_rule} "
         "2. Movie Titles MUST be in English inside [Brackets] e.g. [Inception]. 3. No Asian scripts."
     )
+    
     prompt_parts = [sys_prompt, "\n--- Conversation ---\n"]
     for m in messages or []:
         role = m.get("role", "user")
         content = m.get("content", "")
         prompt_parts.append(f"{role.upper()}: {content}\n")
+    
     prompt_parts.append("\nAssistant:")
     prompt_text = "\n".join(prompt_parts)
+    
     return _call_gemini(prompt_text, temperature=0.7, max_tokens=500)
 
 def analyze_image_search(image_file, lang: str = "ar") -> str:
     """
-    Encode image as base64 and include in prompt. Works if the chosen Gemini model supports multimodal inputs.
-    If not supported, Gemini will still receive the prompt but won't analyze the image visually.
+    Encode image as base64 and include in prompt using Gemini Vision (multimodal).
     """
     if not GEMINI_API_KEY:
-        return "Error: Gemini API key or model not configured."
+        return "Error: Gemini API key not configured."
+    
     try:
-        b64 = base64.b64encode(image_file.read()).decode("utf-8")
-        image_file.seek(0)
+        # Read file and encode to base64
+        image_data = image_file.read()
+        b64 = base64.b64encode(image_data).decode("utf-8")
+        image_file.seek(0)  # Reset cursor
     except Exception as e:
         return f"Error reading image: {e}"
+    
     lang_rule = get_lang_instruction(lang)
-    prompt = (
+    user_prompt = (
         f"Analyze the mood of the following image and recommend 3 movies. {lang_rule} "
-        "Return titles inside [Brackets].\n\n"
-        f"Image (base64): data:image/jpeg;base64,{b64}\n\n"
-        "Provide a short explanation and 3 movie recommendations."
+        "Return titles inside [Brackets]. Provide a short explanation and 3 recommendations."
     )
-    return _call_gemini(prompt, temperature=0.6, max_tokens=500)
+    
+    # Vision Call Construction
+    normalized_model = _normalize_gemini_model(GEMINI_MODEL)
+    url = f"https://generativelanguage.googleapis.com/v1beta/{normalized_model}:generateContent?key={GEMINI_API_KEY}"
+    
+    payload = {
+        "contents": [{
+            "parts": [
+                {"text": user_prompt},
+                {
+                    "inline_data": {
+                        "mime_type": "image/jpeg",  # Assumes JPEG/PNG, Gemini handles common types
+                        "data": b64
+                    }
+                }
+            ]
+        }],
+        "generationConfig": {
+            "temperature": 0.6,
+            "maxOutputTokens": 500
+        }
+    }
+    
+    headers = {"Content-Type": "application/json"}
+    
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=45)
+        if resp.status_code != 200:
+            logger.error(f"Gemini Vision Error {resp.status_code}: {resp.text}")
+            return "Error analyzing image."
+            
+        data = resp.json()
+        candidates = data.get("candidates", [])
+        if candidates:
+            parts = candidates[0].get("content", {}).get("parts", [])
+            if parts:
+                return parts[0].get("text", "")
+        return "No results found."
+        
+    except Exception as e:
+        logger.exception("Gemini vision call failed")
+        return f"Error: {e}"
 
 def analyze_dna(movies: List[str], lang: str = "ar") -> str:
     if not GEMINI_API_KEY:
-        return "Error: Gemini API key or model not configured."
+        return "Error: Gemini API key not configured."
+    
+    # Filter empty inputs
+    valid_movies = [m for m in movies if m]
+    if not valid_movies:
+        return "Please enter at least one movie."
+
     lang_rule = get_lang_instruction(lang)
-    prompt = f"User likes: {', '.join([m for m in movies if m])}. Analyze personality and suggest 3 NEW movies. {lang_rule} Titles in [Brackets]."
+    prompt = (
+        f"User likes: {', '.join(valid_movies)}. Analyze personality and suggest 3 NEW movies. "
+        f"{lang_rule} Titles in [Brackets]."
+    )
     return _call_gemini(prompt, temperature=0.7, max_tokens=400)
 
 def find_match(u1: str, u2: str, lang: str = "ar") -> str:
     if not GEMINI_API_KEY:
-        return "Error: Gemini API key or model not configured."
+        return "Error: Gemini API key not configured."
+        
     lang_rule = get_lang_instruction(lang)
-    prompt = f"Matchmaker: Person A likes {u1}. Person B likes {u2}. Find middle ground movies. {lang_rule} Titles in [Brackets]."
+    prompt = (
+        f"Matchmaker: Person A likes {u1}. Person B likes {u2}. Find middle ground movies. "
+        f"{lang_rule} Titles in [Brackets]."
+    )
     return _call_gemini(prompt, temperature=0.7, max_tokens=400)
