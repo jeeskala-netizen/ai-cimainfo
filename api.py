@@ -1,4 +1,4 @@
-# Api.py - Production Ready (OpenRouter Primary)
+# Api.py - Production Ready (OpenRouter Primary + Smart Gemini Fallback)
 import os
 import logging
 import base64
@@ -25,8 +25,10 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or getattr(config, "GEMINI_API
 # طباعة حالة المفاتيح في السجل (للتأكد من أن Render قرأها)
 if OPENROUTER_API_KEY:
     logger.info("✅ OpenRouter Key Detected.")
+elif GEMINI_API_KEY:
+    logger.info("⚠️ OpenRouter missing. Using Gemini Direct Fallback.")
 else:
-    logger.warning("⚠️ OpenRouter Key NOT found in environment variables!")
+    logger.error("❌ CRITICAL: No AI Keys Found!")
 
 # إعدادات TMDB
 BASE_URL = getattr(config, "BASE_URL", "https://api.themoviedb.org/3")
@@ -45,13 +47,12 @@ def _call_ai_service(messages: List[Dict], temperature: float = 0.7) -> str:
     if OPENROUTER_API_KEY:
         try:
             # استخدام موديل Gemini Flash السريع والمجاني عبر OpenRouter
-            # يمكنك تغييره مستقبلاً لـ "meta-llama/llama-3-8b-instruct:free"
             model = "google/gemini-flash-1.5" 
             
             url = "https://openrouter.ai/api/v1/chat/completions"
             headers = {
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "HTTP-Referer": "https://ai-cimainfo.onrender.com", # مطلوب من OpenRouter
+                "HTTP-Referer": "https://ai-cimainfo.onrender.com", 
                 "X-Title": "CimaBot",
                 "Content-Type": "application/json"
             }
@@ -78,7 +79,7 @@ def _call_ai_service(messages: List[Dict], temperature: float = 0.7) -> str:
         logger.info("🔄 Switching to Gemini Direct API fallback...")
         return _fallback_gemini_direct(messages, temperature)
 
-    return "Error: Could not contact AI. Please check OPENROUTER_API_KEY in Render settings."
+    return "Error: Could not contact AI. Please add OPENROUTER_API_KEY or ensure GEMINI_API_KEY is valid."
 
 def _fallback_gemini_direct(messages: List[Dict], temperature: float) -> str:
     """
@@ -89,8 +90,9 @@ def _fallback_gemini_direct(messages: List[Dict], temperature: float) -> str:
         # تحويل المحادثة لنص واحد لأن واجهة REST البسيطة تفضل ذلك
         full_prompt = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
         
-        # استخدام النسخة v1beta الأحدث
+        # استخدام النسخة v1beta الأحدث مع الموديل الصحيح لتجنب 404
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        
         payload = {
             "contents": [{"parts": [{"text": full_prompt}]}],
             "generationConfig": {"temperature": temperature}
@@ -99,16 +101,21 @@ def _fallback_gemini_direct(messages: List[Dict], temperature: float) -> str:
         resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
         
         if resp.status_code == 200:
-            return resp.json()['candidates'][0]['content']['parts'][0]['text']
+            candidates = resp.json().get('candidates')
+            if candidates:
+                return candidates[0]['content']['parts'][0]['text']
+            return "No content returned from Gemini."
         else:
             logger.error(f"Gemini Direct Error {resp.status_code}: {resp.text}")
+            if resp.status_code == 404:
+                return "Error: Gemini Model 404. Please report to developer."
+            return f"Error: Gemini API Status {resp.status_code}"
             
     except Exception as e:
         logger.error(f"Gemini Direct Exception: {e}")
-        
-    return "Error: All AI services failed."
+        return f"Error: {str(e)}"
 
-# --- دوال مساعدة TMDB (تعمل بنجاح، لم يتم تغييرها) ---
+# --- دوال مساعدة TMDB (تعمل بنجاح) ---
 
 @lru_cache(maxsize=128)
 def fetch_content(content_type="movie", category="popular", region=None):
@@ -181,7 +188,7 @@ def chat_with_ai_formatted(messages: List[Dict], persona: str, lang: str = "ar")
     return _call_ai_service(formatted_msgs)
 
 def analyze_image_search(image_file, lang: str = "ar") -> str:
-    """تحليل الصور باستخدام OpenRouter Vision"""
+    """تحليل الصور باستخدام OpenRouter Vision أو Gemini Fallback"""
     if not OPENROUTER_API_KEY and not GEMINI_API_KEY:
         return "Error: AI Keys missing."
         
@@ -215,6 +222,7 @@ def analyze_image_search(image_file, lang: str = "ar") -> str:
 
 def _fallback_gemini_vision(b64_data, prompt):
     try:
+        # هنا أيضاً نستخدم الموديل الصحيح لتجنب 404
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         payload = {
             "contents": [{
@@ -227,8 +235,10 @@ def _fallback_gemini_vision(b64_data, prompt):
         resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
         if resp.status_code == 200:
             return resp.json()['candidates'][0]['content']['parts'][0]['text']
+        else:
+             logger.error(f"Gemini Vision Error {resp.status_code}: {resp.text}")
     except: pass
-    return "Error analyzing image."
+    return "Error analyzing image (Gemini Fallback)."
 
 def analyze_dna(movies: List[str], lang: str = "ar") -> str:
     valid = [m for m in movies if m]
